@@ -2,8 +2,64 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Mitch's Fitness Coach</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>MitchFit</title>
+
+<!-- iOS Home Screen App Behavior -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MitchFit">
+
+<!-- iOS Home Screen Icon (inline SVG → Canvas → data URI via script) -->
+<script>
+(function(){
+  // Build a 180x180 icon on a canvas and inject it as apple-touch-icon
+  const c = document.createElement('canvas');
+  c.width = 180; c.height = 180;
+  const ctx = c.getContext('2d');
+
+  // Background gradient
+  const grad = ctx.createLinearGradient(0, 0, 180, 180);
+  grad.addColorStop(0, '#0a0a0f');
+  grad.addColorStop(1, '#1c1c26');
+  ctx.fillStyle = grad;
+  // Rounded rect (iOS clips to circle but good to have)
+  ctx.beginPath();
+  ctx.roundRect(0, 0, 180, 180, 38);
+  ctx.fill();
+
+  // Blue accent ring
+  ctx.strokeStyle = '#3b82f6';
+  ctx.lineWidth = 4;
+  ctx.beginPath();
+  ctx.roundRect(6, 6, 168, 168, 34);
+  ctx.stroke();
+
+  // "MF" letters
+  ctx.fillStyle = '#3b82f6';
+  ctx.font = 'bold 72px system-ui, -apple-system, sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('MF', 90, 82);
+
+  // Tagline
+  ctx.fillStyle = '#64748b';
+  ctx.font = '500 18px system-ui, -apple-system, sans-serif';
+  ctx.fillText('FITNESS', 90, 136);
+
+  // Inject as link tag
+  const link = document.createElement('link');
+  link.rel = 'apple-touch-icon';
+  link.href = c.toDataURL('image/png');
+  document.head.appendChild(link);
+
+  // Also set favicon
+  const fav = document.createElement('link');
+  fav.rel = 'icon';
+  fav.href = c.toDataURL('image/png');
+  document.head.appendChild(fav);
+})();
+</script>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
