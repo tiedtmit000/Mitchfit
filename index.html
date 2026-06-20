@@ -2195,48 +2195,43 @@ async function estimateFood() {
     return;
   }
 
-  // Step 1.5: Check learned cache (previous API lookups saved locally)
+  // Step 1.5: Check learned cache
   const learnedResult = checkLearnedCache(desc);
   if (learnedResult) {
     showEstimate(learnedResult);
     return;
   }
 
-  // Step 2: Fall back to API
+  // Step 2: No local match — show manual entry prompt with AI suggestion note
   const d = getData();
+
+  // Show the box in "no match" state first
+  const box = document.getElementById('estimate-box');
+  box.style.display = 'block';
+
   if (!d.apiKey) {
-    localResult.source = 'local';
-    showEstimate(localResult);
+    // No API key at all
+    showNoMatch(desc, 'No API key set. Go to the Coach tab and add your key, then try again.');
     return;
   }
 
-  // Show loading state
-  const box = document.getElementById('estimate-box');
-  box.style.display = 'block';
+  // Show loading
   box.style.borderColor = 'var(--accent)';
   document.getElementById('estimate-breakdown').innerHTML =
     '<span style="color:var(--muted)">🔍 Looking up nutrition via AI...</span>';
-  document.getElementById('est-cal').textContent = '...';
-  document.getElementById('est-protein').textContent = '...';
-  document.getElementById('est-carbs').textContent = '...';
-  document.getElementById('est-fat').textContent = '...';
+  ['est-cal','est-protein','est-carbs','est-fat'].forEach(id =>
+    document.getElementById(id).textContent = '...');
   document.getElementById('estimate-confidence').textContent = 'Looking up...';
   document.getElementById('estimate-confidence').style.cssText =
     'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(59,130,246,0.2);color:var(--accent)';
 
   try {
-    const prompt = `You are a nutrition database. The user ate: "${desc}"
+    const prompt = `Nutrition lookup. Food: "${desc}"
 
-Return ONLY a JSON object with these exact keys, no other text, no markdown:
-{
-  "cal": <total calories as integer>,
-  "protein": <grams protein as integer>,
-  "carbs": <grams carbs as integer>,
-  "fat": <grams fat as integer>,
-  "breakdown": "<brief plain-text explanation of how you calculated this, max 1 sentence per item>"
-}
+Respond with ONLY this JSON, no other words:
+{"cal":CALORIES,"protein":PROTEIN_G,"carbs":CARBS_G,"fat":FAT_G,"breakdown":"one line explanation"}
 
-Be accurate. Use standard USDA nutrition values. Account for the quantity described. If a quantity is ambiguous, use a reasonable standard serving.`;
+Use integers. Use USDA values. Account for quantity if specified.`;
 
     const response = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2247,49 +2242,106 @@ Be accurate. Use standard USDA nutrition values. Account for the quantity descri
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 300,
+        max_tokens: 200,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
-    const data = await response.json();
-    if (data.error) throw new Error(data.error.message);
+    // Capture full response text first so we can debug if needed
+    const responseText = await response.text();
 
+    if (!response.ok) {
+      let errMsg = 'HTTP ' + response.status;
+      try { errMsg = JSON.parse(responseText)?.error?.message || errMsg; } catch(e) {}
+      throw new Error(errMsg);
+    }
+
+    const data = JSON.parse(responseText);
     const raw = data.content?.[0]?.text || '';
-    const clean = raw.replace(/```json|```/g, '').trim();
-    const parsed = JSON.parse(clean);
+
+    // Very tolerant parsing — try multiple strategies
+    let parsed = null;
+
+    // Strategy 1: direct parse
+    try { parsed = JSON.parse(raw.trim()); } catch(e) {}
+
+    // Strategy 2: strip markdown fences
+    if (!parsed) {
+      try {
+        const stripped = raw.replace(/```json|```/gi, '').trim();
+        parsed = JSON.parse(stripped);
+      } catch(e) {}
+    }
+
+    // Strategy 3: extract first {...} block
+    if (!parsed) {
+      try {
+        const match = raw.match(/\{[^{}]*\}/s);
+        if (match) parsed = JSON.parse(match[0]);
+      } catch(e) {}
+    }
+
+    // Strategy 4: pull numbers out manually with regex
+    if (!parsed) {
+      const getNum = (label) => {
+        const m = raw.match(new RegExp('"?' + label + '"?\\s*:\\s*(\\d+)', 'i'));
+        return m ? parseInt(m[1]) : 0;
+      };
+      const cal = getNum('cal') || getNum('calories') || getNum('kcal');
+      if (cal > 0) {
+        parsed = {
+          cal,
+          protein: getNum('protein'),
+          carbs: getNum('carbs') || getNum('carbohydrates'),
+          fat: getNum('fat'),
+          breakdown: 'Extracted from AI response'
+        };
+      }
+    }
+
+    if (!parsed || !parsed.cal) {
+      throw new Error('Empty response from API. Raw: ' + (raw || 'nothing').slice(0, 150));
+    }
 
     const cal     = Math.round(parsed.cal || 0);
     const protein = Math.round(parsed.protein || 0);
     const carbs   = Math.round(parsed.carbs || 0);
     const fat     = Math.round(parsed.fat || 0);
 
-    // Auto-save to learned cache so next lookup is instant
     learnFood(desc, cal, protein, carbs, fat);
 
     showEstimate({
       cal, protein, carbs, fat,
       breakdown: [{ label: desc, qty: 'AI lookup', cal, protein, carbs, fat }],
-      apiBreakdown: (parsed.breakdown || '') + ' (saved to local database)',
+      apiBreakdown: (parsed.breakdown || '') + ' — saved to your learned database',
       confidence: 0.92,
       matched: 1,
       source: 'api'
     });
 
   } catch (err) {
-    // API failed — fall back to whatever local had
-    if (localResult.matched) {
-      localResult.source = 'local_fallback';
-      showEstimate(localResult);
+    console.error('Food API error:', err);
+    // Check if it's a CORS error
+    const isCors = err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('CORS');
+    if (isCors) {
+      showNoMatch(desc, 'Network blocked the API call. Enter numbers manually — or use this app from claude.ai where API calls work directly.');
     } else {
-      document.getElementById('estimate-breakdown').innerHTML =
-        '⚠️ Could not look up nutrition. Check your API key or enter numbers manually.';
-      document.getElementById('est-cal').textContent = '?';
-      document.getElementById('est-protein').textContent = '?';
-      document.getElementById('est-carbs').textContent = '?';
-      document.getElementById('est-fat').textContent = '?';
+      showNoMatch(desc, 'API error: ' + err.message + '. Enter the numbers manually below.');
     }
   }
+}
+
+function showNoMatch(desc, reason) {
+  const box = document.getElementById('estimate-box');
+  box.style.display = 'block';
+  box.style.borderColor = 'var(--yellow)';
+  ['est-cal','est-protein','est-carbs','est-fat'].forEach(id =>
+    document.getElementById(id).textContent = '?');
+  document.getElementById('estimate-confidence').textContent = 'No match';
+  document.getElementById('estimate-confidence').style.cssText =
+    'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(234,179,8,0.2);color:var(--yellow)';
+  document.getElementById('estimate-breakdown').innerHTML =
+    `⚠️ ${reason}`;
 }
 
 function onFoodDescriptionInput() {
@@ -2351,7 +2403,10 @@ function matchSegment(seg) {
   let longestMatch = 0;
 
   for (const alias of Object.keys(ALIAS_MAP)) {
-    if (seg.includes(alias) && alias.length > longestMatch) {
+    // Use word-boundary regex so 'apple' doesn't match inside 'pineapple'
+    const escaped = alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp('(?<![a-z])' + escaped + '(?![a-z])', 'i');
+    if (regex.test(seg) && alias.length > longestMatch) {
       longestMatch = alias.length;
       foodKey = ALIAS_MAP[alias];
     }
