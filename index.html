@@ -2131,16 +2131,168 @@ function buildAliasMap() {
 }
 const ALIAS_MAP = buildAliasMap();
 
-function estimateFood() {
+// ── LEARNED FOOD CACHE ──────────────────────────────────────────────
+// Stores API lookups in localStorage so they work offline next time
+const LEARNED_KEY = 'mitchfit_learned_foods';
+
+function getLearnedFoods() {
+  try { return JSON.parse(localStorage.getItem(LEARNED_KEY)) || {}; }
+  catch { return {}; }
+}
+
+function learnFood(desc, cal, protein, carbs, fat) {
+  const learned = getLearnedFoods();
+  // Normalize the key: lowercase, trimmed
+  const key = desc.toLowerCase().trim();
+  learned[key] = { cal, protein, carbs, fat, learnedAt: Date.now() };
+  localStorage.setItem(LEARNED_KEY, JSON.stringify(learned));
+}
+
+function checkLearnedCache(desc) {
+  const learned = getLearnedFoods();
+  const key = desc.toLowerCase().trim();
+
+  // Exact match
+  if (learned[key]) {
+    const e = learned[key];
+    return {
+      cal: e.cal, protein: e.protein, carbs: e.carbs, fat: e.fat,
+      breakdown: [{ label: key, qty: 'learned', cal: e.cal, protein: e.protein, carbs: e.carbs, fat: e.fat }],
+      apiBreakdown: 'From your personal learned database (originally looked up via AI)',
+      confidence: 0.9, matched: 1, source: 'learned'
+    };
+  }
+
+  // Partial match — if all words in desc appear in a learned key
+  const words = key.split(/\s+/).filter(w => w.length > 2);
+  for (const [lKey, e] of Object.entries(learned)) {
+    const matchCount = words.filter(w => lKey.includes(w)).length;
+    if (words.length > 0 && matchCount === words.length) {
+      return {
+        cal: e.cal, protein: e.protein, carbs: e.carbs, fat: e.fat,
+        breakdown: [{ label: lKey, qty: 'learned (partial match)', cal: e.cal, protein: e.protein, carbs: e.carbs, fat: e.fat }],
+        apiBreakdown: `Matched learned entry "${lKey}"`,
+        confidence: 0.78, matched: 1, source: 'learned'
+      };
+    }
+  }
+  return null;
+}
+
+function getLearnerCount() {
+  return Object.keys(getLearnedFoods()).length;
+}
+
+async function estimateFood() {
   const desc = document.getElementById('food-name').value.trim();
   if (!desc) { alert('Describe what you ate first.'); return; }
 
-  const result = parseDescription(desc);
-  showEstimate(result);
+  // Step 1: Try local DB first
+  const localResult = parseDescription(desc);
+  if (localResult.matched && localResult.confidence >= 0.65) {
+    localResult.source = 'local';
+    showEstimate(localResult);
+    return;
+  }
+
+  // Step 1.5: Check learned cache (previous API lookups saved locally)
+  const learnedResult = checkLearnedCache(desc);
+  if (learnedResult) {
+    showEstimate(learnedResult);
+    return;
+  }
+
+  // Step 2: Fall back to API
+  const d = getData();
+  if (!d.apiKey) {
+    localResult.source = 'local';
+    showEstimate(localResult);
+    return;
+  }
+
+  // Show loading state
+  const box = document.getElementById('estimate-box');
+  box.style.display = 'block';
+  box.style.borderColor = 'var(--accent)';
+  document.getElementById('estimate-breakdown').innerHTML =
+    '<span style="color:var(--muted)">🔍 Looking up nutrition via AI...</span>';
+  document.getElementById('est-cal').textContent = '...';
+  document.getElementById('est-protein').textContent = '...';
+  document.getElementById('est-carbs').textContent = '...';
+  document.getElementById('est-fat').textContent = '...';
+  document.getElementById('estimate-confidence').textContent = 'Looking up...';
+  document.getElementById('estimate-confidence').style.cssText =
+    'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(59,130,246,0.2);color:var(--accent)';
+
+  try {
+    const prompt = `You are a nutrition database. The user ate: "${desc}"
+
+Return ONLY a JSON object with these exact keys, no other text, no markdown:
+{
+  "cal": <total calories as integer>,
+  "protein": <grams protein as integer>,
+  "carbs": <grams carbs as integer>,
+  "fat": <grams fat as integer>,
+  "breakdown": "<brief plain-text explanation of how you calculated this, max 1 sentence per item>"
+}
+
+Be accurate. Use standard USDA nutrition values. Account for the quantity described. If a quantity is ambiguous, use a reasonable standard serving.`;
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': d.apiKey,
+        'anthropic-version': '2023-06-01'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 300,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.message);
+
+    const raw = data.content?.[0]?.text || '';
+    const clean = raw.replace(/```json|```/g, '').trim();
+    const parsed = JSON.parse(clean);
+
+    const cal     = Math.round(parsed.cal || 0);
+    const protein = Math.round(parsed.protein || 0);
+    const carbs   = Math.round(parsed.carbs || 0);
+    const fat     = Math.round(parsed.fat || 0);
+
+    // Auto-save to learned cache so next lookup is instant
+    learnFood(desc, cal, protein, carbs, fat);
+
+    showEstimate({
+      cal, protein, carbs, fat,
+      breakdown: [{ label: desc, qty: 'AI lookup', cal, protein, carbs, fat }],
+      apiBreakdown: (parsed.breakdown || '') + ' (saved to local database)',
+      confidence: 0.92,
+      matched: 1,
+      source: 'api'
+    });
+
+  } catch (err) {
+    // API failed — fall back to whatever local had
+    if (localResult.matched) {
+      localResult.source = 'local_fallback';
+      showEstimate(localResult);
+    } else {
+      document.getElementById('estimate-breakdown').innerHTML =
+        '⚠️ Could not look up nutrition. Check your API key or enter numbers manually.';
+      document.getElementById('est-cal').textContent = '?';
+      document.getElementById('est-protein').textContent = '?';
+      document.getElementById('est-carbs').textContent = '?';
+      document.getElementById('est-fat').textContent = '?';
+    }
+  }
 }
 
 function onFoodDescriptionInput() {
-  // Hide estimate box when user changes description
   const box = document.getElementById('estimate-box');
   if (box.style.display !== 'none') {
     box.style.display = 'none';
@@ -2286,9 +2438,10 @@ function showEstimate(result) {
     document.getElementById('est-carbs').textContent = '?';
     document.getElementById('est-fat').textContent = '?';
     document.getElementById('estimate-confidence').textContent = 'No match';
-    document.getElementById('estimate-confidence').style.cssText = 'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(234,179,8,0.2);color:var(--yellow)';
+    document.getElementById('estimate-confidence').style.cssText =
+      'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(234,179,8,0.2);color:var(--yellow)';
     document.getElementById('estimate-breakdown').innerHTML =
-      '⚠️ Couldn\'t recognize the food. Try adding more detail — e.g. "8oz grilled chicken breast" — or fill in the numbers manually.';
+      '⚠️ Could not recognize the food. Try adding more detail or enter numbers manually.';
     return;
   }
 
@@ -2299,26 +2452,40 @@ function showEstimate(result) {
 
   const conf = result.confidence;
   const confEl = document.getElementById('estimate-confidence');
-  if (conf >= 0.85) {
-    confEl.textContent = 'High confidence';
-    confEl.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(34,197,94,0.2);color:var(--green)';
-  } else if (conf >= 0.65) {
-    confEl.textContent = 'Medium confidence';
-    confEl.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(234,179,8,0.2);color:var(--yellow)';
-  } else {
-    confEl.textContent = 'Low confidence — verify';
-    confEl.style.cssText = 'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(239,68,68,0.15);color:var(--red)';
-  }
+
+  // Source label
+  const sourceLabel = result.source === 'api'
+    ? '🤖 AI lookup'
+    : result.source === 'learned'
+      ? '💾 From learned database'
+      : result.source === 'local_fallback'
+        ? '📦 Local DB (fallback)'
+        : conf >= 0.85 ? 'High confidence' : conf >= 0.65 ? 'Medium confidence' : 'Low confidence — verify';
+
+  const sourceBg = (result.source === 'api' || result.source === 'learned')
+    ? 'background:rgba(34,197,94,0.2);color:var(--green)'
+    : conf >= 0.85
+      ? 'background:rgba(34,197,94,0.2);color:var(--green)'
+      : conf >= 0.65
+        ? 'background:rgba(234,179,8,0.2);color:var(--yellow)'
+        : 'background:rgba(239,68,68,0.15);color:var(--red)';
+
+  confEl.textContent = sourceLabel;
+  confEl.style.cssText = `font-size:11px;padding:2px 8px;border-radius:100px;${sourceBg}`;
 
   const bkEl = document.getElementById('estimate-breakdown');
-  bkEl.innerHTML = result.breakdown.map(b =>
-    `<span style="color:var(--text)">${b.label}</span> <span style="color:var(--muted)">(${b.qty})</span> — ${b.cal} cal, ${b.protein}g P, ${b.carbs}g C, ${b.fat}g F<br>`
-  ).join('');
 
-  box.style.borderColor = 'var(--accent)';
+  if (result.source === 'api' && result.apiBreakdown) {
+    bkEl.innerHTML = `<span style="color:var(--muted)">${result.apiBreakdown}</span>`;
+  } else {
+    bkEl.innerHTML = result.breakdown.map(b =>
+      `<span style="color:var(--text)">${b.label}</span> <span style="color:var(--muted)">(${b.qty})</span> — ${b.cal} cal, ${b.protein}g P, ${b.carbs}g C, ${b.fat}g F<br>`
+    ).join('');
+  }
+
+  box.style.borderColor = result.source === 'api' ? 'var(--green)' : 'var(--accent)';
   box.style.display = 'block';
 
-  // Store for accept
   box.dataset.cal     = result.cal;
   box.dataset.protein = result.protein;
   box.dataset.carbs   = result.carbs;
