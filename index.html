@@ -13,6 +13,22 @@
 <!-- iOS Home Screen Icon (inline SVG → Canvas → data URI via script) -->
 <script>
 (function(){
+  // Polyfill roundRect for older Safari
+  if (!CanvasRenderingContext2D.prototype.roundRect) {
+    CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+      this.beginPath();
+      this.moveTo(x + r, y);
+      this.lineTo(x + w - r, y);
+      this.quadraticCurveTo(x + w, y, x + w, y + r);
+      this.lineTo(x + w, y + h - r);
+      this.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+      this.lineTo(x + r, y + h);
+      this.quadraticCurveTo(x, y + h, x, y + h - r);
+      this.lineTo(x, y + r);
+      this.quadraticCurveTo(x, y, x + r, y);
+      this.closePath();
+    };
+  }
   // Build a 180x180 icon on a canvas and inject it as apple-touch-icon
   const c = document.createElement('canvas');
   c.width = 180; c.height = 180;
@@ -690,6 +706,45 @@
     border-radius: 6px; margin-bottom: 10px;
   }
 
+  /* DAILY CHECKLIST */
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    margin-bottom: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .check-item:hover { border-color: var(--accent); }
+  .check-item.done {
+    border-color: var(--green);
+    background: rgba(34,197,94,0.06);
+  }
+  .check-circle {
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+    transition: all 0.2s;
+  }
+  .check-item.done .check-circle {
+    background: var(--green);
+    border-color: var(--green);
+  }
+  .check-item.done .check-circle::after { content: '✓'; color: white; font-weight: 700; }
+  .check-label { flex: 1; }
+  .check-label-text { font-size: 14px; font-weight: 500; }
+  .check-item.done .check-label-text { color: var(--muted); text-decoration: line-through; }
+  .check-sublabel { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .check-icon { font-size: 20px; flex-shrink: 0; }
+
   @media (max-width: 600px) {
     .grid-2, .grid-3 { grid-template-columns: 1fr; }
     .content { padding: 16px; }
@@ -734,6 +789,19 @@
   <!-- DASHBOARD -->
   <div class="panel active" id="panel-dashboard">
     <div id="dash-alert"></div>
+
+    <!-- DAILY CHECKLIST -->
+    <div class="card" id="checklist-card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+        <div class="card-title" style="margin-bottom:0">Today's Non-Negotiables</div>
+        <div id="checklist-score" style="font-family:var(--mono);font-size:13px;color:var(--muted)">0 / 5</div>
+      </div>
+      <div id="checklist-items"></div>
+      <div class="progress-wrap" style="margin-top:12px">
+        <div class="progress-bar green" id="checklist-bar" style="width:0%;transition:width 0.4s ease"></div>
+      </div>
+      <div id="checklist-message" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center"></div>
+    </div>
 
     <div class="grid-3" style="margin-bottom:16px">
       <div class="stat-box">
@@ -1113,7 +1181,7 @@ const STORAGE_KEY = 'mitchfit_v1';
 function getData() {
   try {
     return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultData();
-  } catch { return defaultData(); }
+  } catch(e) { return defaultData(); }
 }
 
 function saveData(d) {
@@ -1149,12 +1217,132 @@ function init() {
 }
 
 function renderAll() {
+  renderChecklist();
   renderDashboard();
   renderWorkoutHistory();
   renderFoodToday();
   renderFoodHistory();
   renderWeightPanel();
 }
+
+// ═══════════════════════════════════════════
+// DAILY CHECKLIST
+// ═══════════════════════════════════════════
+
+const CHECKLIST_ITEMS = [
+  {
+    id: 'water',
+    icon: '💧',
+    label: 'Drink 80oz of water',
+    sub: 'That\'s 5 standard water bottles. Non-negotiable.',
+    auto: false
+  },
+  {
+    id: 'protein',
+    icon: '🥩',
+    label: 'Hit 150g+ protein today',
+    sub: 'Auto-tracked from your food log',
+    auto: true,
+    check: (d, today) => {
+      const todayFood = d.foodLogs.filter(f => f.date === today);
+      return todayFood.reduce((s, f) => s + (f.protein || 0), 0) >= 150;
+    }
+  },
+  {
+    id: 'log',
+    icon: '📋',
+    label: 'Log every meal today',
+    sub: 'Auto-checked when you log 3+ food entries',
+    auto: true,
+    check: (d, today) => d.foodLogs.filter(f => f.date === today).length >= 3
+  },
+  {
+    id: 'weight',
+    icon: '⚖️',
+    label: 'Log your morning weight',
+    sub: 'Auto-checked when you log weight today',
+    auto: true,
+    check: (d, today) => d.weightLogs.some(w => w.date === today)
+  },
+  {
+    id: 'nocutoff',
+    icon: '🚫',
+    label: 'No food after 8pm',
+    sub: 'Tap to confirm you stuck to this',
+    auto: false
+  }
+];
+
+const CHECKLIST_MESSAGES = [
+  { min: 0, max: 0,  msg: 'Start somewhere. Tap water first — it costs nothing.' },
+  { min: 1, max: 2,  msg: 'Moving. Don\'t stop here.' },
+  { min: 3, max: 3,  msg: 'Halfway. Good but not done.' },
+  { min: 4, max: 4,  msg: 'One away. Finish it.' },
+  { min: 5, max: 5,  msg: '✅ Clean day. This is what consistent looks like.' }
+];
+
+function getChecklistKey() {
+  const today = new Date().toISOString().split('T')[0];
+  return 'checklist_' + today;
+}
+
+function getManualChecks() {
+  try { return JSON.parse(localStorage.getItem(getChecklistKey())) || {}; }
+  catch { return {}; }
+}
+
+function toggleManualCheck(id) {
+  const manual = getManualChecks();
+  manual[id] = !manual[id];
+  localStorage.setItem(getChecklistKey(), JSON.stringify(manual));
+  renderChecklist();
+  renderDashboard();
+}
+
+function renderChecklist() {
+  const d = getData();
+  const today = new Date().toISOString().split('T')[0];
+  const manual = getManualChecks();
+  const el = document.getElementById('checklist-items');
+  if (!el) return;
+
+  let doneCount = 0;
+  let html = '';
+
+  CHECKLIST_ITEMS.forEach(item => {
+    const autoDone = item.auto ? item.check(d, today) : false;
+    const manualDone = manual[item.id] || false;
+    const done = autoDone || manualDone;
+    if (done) doneCount++;
+
+    html += `
+      <div class="check-item ${done ? 'done' : ''}" onclick="${item.auto ? '' : `toggleManualCheck('${item.id}')`}" style="${item.auto ? 'cursor:default' : ''}">
+        <div class="check-icon">${item.icon}</div>
+        <div class="check-label">
+          <div class="check-label-text">${item.label}</div>
+          <div class="check-sublabel">${item.auto ? (done ? '✓ Auto-detected from your logs' : item.sub) : item.sub}</div>
+        </div>
+        <div class="check-circle"></div>
+      </div>
+    `;
+  });
+
+  el.innerHTML = html;
+
+  const pct = (doneCount / CHECKLIST_ITEMS.length) * 100;
+  document.getElementById('checklist-bar').style.width = pct + '%';
+  document.getElementById('checklist-score').textContent = doneCount + ' / ' + CHECKLIST_ITEMS.length;
+
+  const msgObj = CHECKLIST_MESSAGES.find(m => doneCount >= m.min && doneCount <= m.max);
+  document.getElementById('checklist-message').textContent = msgObj ? msgObj.msg : '';
+
+  // Color the bar based on progress
+  const bar = document.getElementById('checklist-bar');
+  if (doneCount <= 2) bar.style.background = 'var(--red)';
+  else if (doneCount <= 3) bar.style.background = 'var(--yellow)';
+  else bar.style.background = 'var(--green)';
+}
+
 
 // ═══════════════════════════════════════════
 // TABS
@@ -1257,7 +1445,7 @@ function renderDashboard() {
 
   // Recent activity
   const recent = [];
-  d.workoutLogs.slice(-3).forEach(w => recent.push({ type: 'workout', date: w.date, name: w.type, meta: w.exercises?.length + ' exercises' }));
+  d.workoutLogs.slice(-3).forEach(w => recent.push({ type: 'workout', date: w.date, name: w.type, meta: (w.exercises ? w.exercises.length : 0) + ' exercises' }));
   d.weightLogs.slice(-2).forEach(w => recent.push({ type: 'weight', date: w.date, name: w.weight + ' lbs', meta: w.notes || 'Weight check-in' }));
   recent.sort((a, b) => new Date(b.date) - new Date(a.date));
 
@@ -1440,25 +1628,49 @@ function getNextWorkoutType(d) {
   return 'strength_a';
 }
 
+// Fitness level based on total workouts logged
+// Phase 1 (0-5):   Brand new — reduced sets, lighter cues, longer rest, movement pattern focus
+// Phase 2 (6-12):  Building — standard beginner volume, starting to push
+// Phase 3 (13+):   Established — full volume, progressive overload emphasis
+function getFitnessPhase(d) {
+  const count = d.workoutLogs.length;
+  if (count <= 5)  return { phase: 1, label: 'Week 1–2', count };
+  if (count <= 12) return { phase: 2, label: 'Week 3–5', count };
+  return               { phase: 3, label: 'Week 6+',  count };
+}
+
+// Scale exercise sets and reps down for phase 1
+function scaleForPhase(ex, phase) {
+  const e = {...ex};
+  if (phase === 1) {
+    e.sets = Math.max(2, e.sets - 1); // 3 sets → 2 sets
+    // Simplify reps for clarity
+    e.reps = e.reps.replace('12', '10').replace('15', '12').replace('10-12','8-10');
+    e.rest = Math.round(e.rest * 1.25); // more rest between sets
+  }
+  return e;
+}
+
 function generateWorkout() {
   const { time, location } = woState;
   const mins = parseInt(time);
   const d = getData();
   const wType = getNextWorkoutType(d);
   const isGym = location === 'gym';
+  const phaseInfo = getFitnessPhase(d);
 
   let plan;
 
   if (wType === 'cardio') {
-    plan = buildCardioWorkout(mins, isGym);
+    plan = buildCardioWorkout(mins, isGym, phaseInfo);
   } else if (wType === 'strength_a') {
-    plan = buildStrengthAWorkout(mins, isGym);
+    plan = buildStrengthAWorkout(mins, isGym, phaseInfo);
   } else {
-    plan = buildStrengthBWorkout(mins, isGym);
+    plan = buildStrengthBWorkout(mins, isGym, phaseInfo);
   }
 
   // Render plan card
-  renderWorkoutPlan(plan);
+  renderWorkoutPlan(plan, phaseInfo);
 
   // Load exercises into log form
   document.getElementById('wo-type').value = plan.title;
@@ -1480,27 +1692,33 @@ function generateWorkout() {
   document.getElementById('wo-plan').style.display = 'block';
 }
 
-function buildStrengthAWorkout(mins, isGym) {
-  // Day A: Legs + Push + Core
-  // Priority: compound legs first (most calories), push, core finisher
+function buildStrengthAWorkout(mins, isGym, phaseInfo) {
   const E = EXERCISES;
+  const { phase } = phaseInfo;
   let exercises = [], notes = '';
 
-  if (mins <= 20) {
+  if (phase === 1) {
+    exercises = [
+      isGym ? E.leg_press : E.goblet_squat,
+      isGym ? E.db_chest_press : E.pushup,
+      E.glute_bridge,
+      E.dead_bug,
+    ].map(e => scaleForPhase(e, 1));
+    notes = 'Workout #' + (phaseInfo.count + 1) + ' — You are brand new. 4 exercises, 2 sets each. Your only job today is to learn the movements and finish. Do not push to failure. Leave something in the tank.';
+  } else if (mins <= 20) {
     exercises = [
       isGym ? E.leg_press : E.goblet_squat,
       isGym ? E.db_chest_press : E.kb_floor_press,
       E.plank,
       E.glute_bridge,
-    ];
+    ].map(e => ({...e, sets: 2}));
     notes = '20 min: 4 exercises, 2 sets each, 60 sec rest. Move fast — this is a fat-burn circuit.';
-    exercises = exercises.map(e => ({...e, sets: 2}));
   } else if (mins <= 30) {
     exercises = [
       isGym ? E.leg_press : E.goblet_squat,
       E.reverse_lunge,
       isGym ? E.db_chest_press : E.kb_floor_press,
-      isGym ? E.db_shoulder_press : E.db_shoulder_press,
+      E.db_shoulder_press,
       E.plank,
       E.dead_bug,
     ];
@@ -1510,7 +1728,7 @@ function buildStrengthAWorkout(mins, isGym) {
       isGym ? E.leg_press : E.goblet_squat,
       E.reverse_lunge,
       isGym ? E.db_chest_press : E.kb_floor_press,
-      isGym ? E.db_shoulder_press : E.db_shoulder_press,
+      E.db_shoulder_press,
       E.pushup,
       E.glute_bridge,
       E.plank,
@@ -1523,52 +1741,54 @@ function buildStrengthAWorkout(mins, isGym) {
       E.reverse_lunge,
       isGym ? E.step_up : E.kb_sumo_squat,
       isGym ? E.db_chest_press : E.kb_floor_press,
-      isGym ? E.db_shoulder_press : E.db_shoulder_press,
+      E.db_shoulder_press,
       E.pushup,
-      isGym ? E.tricep_dip : E.tricep_dip,
+      E.tricep_dip,
       E.glute_bridge,
       E.plank,
       E.dead_bug,
       E.bird_dog,
     ];
-    notes = '60 min: Full volume. This burns 400–500 calories. Start lighter than you think — you\'re building a habit, not proving a point.';
+    notes = '60 min: Full volume. This burns 400-500 calories. Start lighter than you think.';
   }
 
   return {
     title: 'Strength A — Legs & Push',
     type: 'Strength A (Legs + Push + Core)',
     focus: 'Legs · Chest · Shoulders · Core',
-    calBurn: mins <= 20 ? '200–280' : mins <= 30 ? '280–350' : mins <= 45 ? '350–420' : '420–520',
-    exercises,
-    notes,
-    location: isGym ? 'Full Gym' : 'Home'
+    calBurn: phase === 1 ? '150-220' : mins <= 20 ? '200-280' : mins <= 30 ? '280-350' : mins <= 45 ? '350-420' : '420-520',
+    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
   };
 }
 
-function buildStrengthBWorkout(mins, isGym) {
-  // Day B: Pull + Hinge + Core
+function buildStrengthBWorkout(mins, isGym, phaseInfo) {
   const E = EXERCISES;
+  const { phase } = phaseInfo;
   let exercises = [], notes = '';
 
-  if (mins <= 20) {
+  if (phase === 1) {
+    exercises = [
+      isGym ? E.lat_pulldown : E.kb_row,
+      isGym ? E.seated_row : E.db_row,
+      E.glute_bridge,
+      E.bird_dog,
+    ].map(e => scaleForPhase(e, 1));
+    notes = 'Workout #' + (phaseInfo.count + 1) + ' — Still early. 4 exercises, 2 sets. Focus on the hinge pattern — push hips back, not knees forward.';
+  } else if (mins <= 20) {
     exercises = [
       isGym ? E.seated_row : E.kb_row,
       isGym ? E.lat_pulldown : E.db_row,
-      E.dead_bug,
-      E.bird_dog,
-    ];
-    notes = '20 min express: 2 sets each, 60 sec rest. Pull muscles burn fat and fix posture — both matter for you.';
-    exercises = exercises.map(e => ({...e, sets: 2}));
+      E.dead_bug, E.bird_dog,
+    ].map(e => ({...e, sets: 2}));
+    notes = '20 min express: 2 sets each, 60 sec rest.';
   } else if (mins <= 30) {
     exercises = [
       isGym ? E.seated_row : E.kb_row,
       isGym ? E.lat_pulldown : E.db_row,
       isGym ? E.db_rdl : E.kb_deadlift,
-      E.hip_thrust,
-      E.plank,
-      E.dead_bug,
+      E.hip_thrust, E.plank, E.dead_bug,
     ];
-    notes = '30 min: Prioritizing hinge pattern — your hamstrings and glutes are the largest muscles = most calorie burn.';
+    notes = '30 min: Prioritizing hinge pattern — hamstrings and glutes = most calorie burn.';
   } else if (mins <= 45) {
     exercises = [
       isGym ? E.lat_pulldown : E.kb_row,
@@ -1576,91 +1796,90 @@ function buildStrengthBWorkout(mins, isGym) {
       isGym ? E.db_rdl : E.kb_deadlift,
       E.hip_thrust,
       isGym ? E.face_pull_band : E.kb_farmer_carry,
-      E.glute_bridge,
-      E.plank,
-      E.dead_bug,
+      E.glute_bridge, E.plank, E.dead_bug,
     ];
-    notes = '45 min: This hits your posterior chain hard. Expect to feel it in your hamstrings and glutes for 2 days.';
+    notes = '45 min: This hits your posterior chain hard. Expect to feel it for 2 days.';
   } else {
     exercises = [
       isGym ? E.lat_pulldown : E.kb_row,
       isGym ? E.seated_row : E.db_row,
       isGym ? E.db_row : E.kb_row,
       isGym ? E.db_rdl : E.kb_deadlift,
-      E.hip_thrust,
-      E.step_up,
+      E.hip_thrust, E.step_up,
       isGym ? E.face_pull_band : E.kb_farmer_carry,
-      E.glute_bridge,
-      E.plank,
-      E.dead_bug,
-      E.bird_dog,
+      E.glute_bridge, E.plank, E.dead_bug, E.bird_dog,
     ];
-    notes = '60 min: High volume pull session. Your back and glutes will grow. Muscle = faster metabolism = faster fat loss.';
+    notes = '60 min: High volume pull session. Muscle = faster metabolism = faster fat loss.';
   }
 
   return {
     title: 'Strength B — Pull & Hinge',
     type: 'Strength B (Pull + Hinge + Core)',
     focus: 'Back · Hamstrings · Glutes · Core',
-    calBurn: mins <= 20 ? '190–260' : mins <= 30 ? '270–340' : mins <= 45 ? '340–420' : '420–500',
-    exercises,
-    notes,
-    location: isGym ? 'Full Gym' : 'Home'
+    calBurn: phase === 1 ? '140-200' : mins <= 20 ? '190-260' : mins <= 30 ? '270-340' : mins <= 45 ? '340-420' : '420-500',
+    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
   };
 }
 
-function buildCardioWorkout(mins, isGym) {
+function buildCardioWorkout(mins, isGym, phaseInfo) {
   const E = EXERCISES;
+  const { phase } = phaseInfo;
   let exercises = [], notes = '';
 
-  if (mins <= 20) {
+  if (phase === 1) {
+    const walkMins = Math.min(mins - 5, 15);
+    exercises = isGym
+      ? [ { ...E.treadmill_walk, reps: walkMins + ' min', sets: 1 }, E.dead_bug, E.glute_bridge, E.bird_dog ]
+      : [ E.march_in_place, E.glute_bridge, E.dead_bug, E.bird_dog ];
+    exercises = exercises.map(e => scaleForPhase(e, 1));
+    notes = 'Workout #' + (phaseInfo.count + 1) + ' — Cardio day. ' + (isGym ? 'Walk ' + walkMins + ' min at 3.0mph flat — no incline yet.' : 'March in place 3x30 sec.') + ' Your cardio system needs to adapt before we push pace.';
+  } else if (mins <= 20) {
     exercises = isGym
       ? [ E.march_in_place, E.bike, E.dead_bug, E.glute_bridge ]
       : [ E.kb_swing, E.march_in_place, E.dead_bug, E.glute_bridge ];
-    notes = '20 min cardio: Short but effective. KB swings at home are exceptionally high calorie burn for the time.';
     exercises = exercises.map(e => ({...e, sets: 2}));
+    notes = '20 min cardio: Short but effective.';
   } else if (mins <= 30) {
     exercises = isGym
-      ? [{ ...E.treadmill_walk, reps:'20 min', sets:1 }, E.dead_bug, E.glute_bridge, E.bird_dog ]
+      ? [ { ...E.treadmill_walk, reps:'20 min', sets:1 }, E.dead_bug, E.glute_bridge, E.bird_dog ]
       : [ E.kb_swing, E.march_in_place, E.kb_farmer_carry, E.dead_bug, E.glute_bridge ];
-    notes = '30 min: For gym — 20 min incline walk, then core. At home — KB circuit is cardio and strength combined.';
+    notes = '30 min: Incline walk then core at gym. KB circuit at home.';
   } else if (mins <= 45) {
     exercises = isGym
-      ? [
-          { ...E.treadmill_walk, reps:'25 min', sets:1 },
-          E.row_machine,
-          E.dead_bug, E.glute_bridge, E.bird_dog, E.plank
-        ]
+      ? [ { ...E.treadmill_walk, reps:'25 min', sets:1 }, E.row_machine, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank ]
       : [ E.kb_swing, E.kb_sumo_squat, E.kb_farmer_carry, E.march_in_place, E.dead_bug, E.glute_bridge, E.bird_dog ];
-    notes = '45 min cardio: Incline walk + rowing at gym is one of the highest calorie burns you can do without running.';
+    notes = '45 min cardio: Incline walk + rowing is one of the highest cal burns without running.';
   } else {
     exercises = isGym
-      ? [
-          { ...E.treadmill_walk, reps:'30 min', sets:1 },
-          { ...E.bike, reps:'15 min', sets:1 },
-          E.dead_bug, E.glute_bridge, E.bird_dog, E.plank, E.kb_farmer_carry
-        ]
-      : [
-          E.kb_swing, E.kb_sumo_squat, E.kb_farmer_carry,
-          E.march_in_place, E.jump_rope_alt,
-          E.dead_bug, E.glute_bridge, E.bird_dog, E.plank
-        ];
-    notes = '60 min cardio: This burns 500+ calories. At the gym alternate treadmill + bike to reduce joint fatigue from sustained impact.';
+      ? [ { ...E.treadmill_walk, reps:'30 min', sets:1 }, { ...E.bike, reps:'15 min', sets:1 }, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank, E.kb_farmer_carry ]
+      : [ E.kb_swing, E.kb_sumo_squat, E.kb_farmer_carry, E.march_in_place, E.jump_rope_alt, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank ];
+    notes = '60 min cardio: This burns 500+ calories.';
   }
 
   return {
     title: 'Cardio + Core Day',
     type: 'Cardio + Core',
     focus: 'Fat Burn · Heart Rate · Core Stability',
-    calBurn: mins <= 20 ? '200–300' : mins <= 30 ? '300–380' : mins <= 45 ? '380–480' : '480–600',
-    exercises,
-    notes,
-    location: isGym ? 'Full Gym' : 'Home'
+    calBurn: phase === 1 ? '100-180' : mins <= 20 ? '200-300' : mins <= 30 ? '300-380' : mins <= 45 ? '380-480' : '480-600',
+    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
   };
 }
 
-function renderWorkoutPlan(plan) {
+function renderWorkoutPlan(plan, phaseInfo) {
   const card = document.getElementById('wo-plan-card');
+  const { phase, count } = phaseInfo;
+  const phaseColors = { 1: 'var(--yellow)', 2: 'var(--accent)', 3: 'var(--green)' };
+  const phaseLabels = {
+    1: '🌱 Beginner Phase — workout ' + (count + 1) + ' of your first 6',
+    2: '📈 Building Phase — workout #' + (count + 1),
+    3: '💪 Established — workout #' + (count + 1)
+  };
+  const phaseMessages = {
+    1: 'Volume is intentionally reduced. Your joints, tendons, and nervous system need 2-3 weeks to adapt. Finish every set with form intact — that is the only goal right now.',
+    2: 'You have built the foundation. Full volume now. Start tracking weights so we can push progressive overload.',
+    3: 'Past the beginner phase. If a weight feels easy by set 3, go heavier next session. Progress = beat your last numbers.'
+  };
+
   card.innerHTML = `
     <div class="wo-header">
       <div>
@@ -1673,11 +1892,11 @@ function renderWorkoutPlan(plan) {
       </div>
       <div style="font-family:var(--mono);font-size:24px;font-weight:700;color:var(--accent)">${woState.time}<span style="font-size:13px;color:var(--muted)"> min</span></div>
     </div>
-
-    <div class="alert alert-blue" style="margin-bottom:16px">
-      📋 ${plan.notes}
+    <div style="background:rgba(0,0,0,0.2);border:1px solid ${phaseColors[phase]};border-radius:10px;padding:12px 14px;margin-bottom:14px">
+      <div style="font-size:12px;font-weight:700;color:${phaseColors[phase]};text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px">${phaseLabels[phase]}</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.5">${phaseMessages[phase]}</div>
     </div>
-
+    <div class="alert alert-blue" style="margin-bottom:16px">📋 ${plan.notes}</div>
     ${plan.exercises.map((ex, i) => `
       <div class="ex-block">
         <div class="ex-block-header">
@@ -1688,19 +1907,15 @@ function renderWorkoutPlan(plan) {
         </div>
         ${ex.tip ? `<div class="ex-tip">💡 ${ex.tip}</div>` : ''}
       </div>
-      ${ex.rest && i < plan.exercises.length-1 ? `<div class="rest-block">⏱ Rest ${ex.rest} seconds before next exercise</div>` : ''}
+      ${ex.rest && i < plan.exercises.length-1 ? `<div class="rest-block">⏱ Rest ${ex.rest}s before next exercise</div>` : ''}
     `).join('')}
-
     <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Weight Loss Reminder</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.6">
-        Every set you complete here creates a calorie deficit that your food log can't see. 
-        Log your weights honestly below — next session we compare and push you to beat them.
-        Progress = more weight or more reps than last time, not just showing up.
-      </div>
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Log Your Numbers Below</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6">${phase === 1 ? "Don't worry about weight right now. Write BW for bodyweight or light - just finish the sets." : "Record every weight. Next session the coach can tell you if you are progressing or stalling." }</div>
     </div>
   `;
 }
+
 
 function saveWorkout() {
   const d = getData();
@@ -2602,16 +2817,16 @@ Keep responses concise (3-6 sentences usually). Be specific — reference actual
     });
 
     const data = await response.json();
-    document.getElementById('typing')?.remove();
+    var _t = document.getElementById('typing'); if(_t) _t.remove();
 
     if (data.error) {
       addCoachMessage('coach', '⚠️ API error: ' + data.error.message);
     } else {
-      const reply = data.content?.[0]?.text || 'No response.';
+      const reply = (data.content && data.content[0] && data.content[0].text) || 'No response.';
       addCoachMessage('coach', reply);
     }
   } catch (err) {
-    document.getElementById('typing')?.remove();
+    var _t2 = document.getElementById('typing'); if(_t2) _t2.remove();
     addCoachMessage('coach', '⚠️ Connection error. Check your API key and try again.');
   }
 }
