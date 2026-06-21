@@ -1135,15 +1135,6 @@
 
   <!-- AI COACH -->
   <div class="panel" id="panel-coach">
-    <div id="api-key-setup" class="api-setup" style="display:none">
-      <h3>🔑 Connect Your AI Coach</h3>
-      <p>Enter your Anthropic API key to activate the AI coaching features. Your key is stored locally and never sent anywhere except Anthropic's API.</p>
-      <div class="settings-row">
-        <input type="password" id="api-key-input" placeholder="sk-ant-...">
-        <button class="btn btn-primary" onclick="saveApiKey()">Connect</button>
-      </div>
-    </div>
-
     <div id="coach-ui">
       <div class="alert alert-blue" style="margin-bottom:16px">
         <strong>Your AI Coach</strong> — I have full visibility into your workouts, food logs, and weight. I will challenge you, not coddle you. Ask me anything or just check in.
@@ -1162,10 +1153,6 @@
           <button class="btn btn-outline btn-sm" onclick="quickPrompt('I am thinking about quitting. Talk me out of it or be honest about why this is hard.')">Motivation</button>
         </div>
       </div>
-
-      <div style="margin-top:8px;text-align:right">
-        <button class="btn btn-danger" onclick="changeApiKey()">Change API Key</button>
-      </div>
     </div>
   </div>
 
@@ -1173,20 +1160,17 @@
 
 <script>
 // ═══════════════════════════════════════════
-// DATA LAYER
+// DATA LAYER — Artifact persistent storage
+// In-memory cache + write-through to window.storage
 // ═══════════════════════════════════════════
 
 const STORAGE_KEY = 'mitchfit_v1';
+const LEARNED_STORAGE_KEY = 'mitchfit_learned';
+const CHECKLIST_STORAGE_PREFIX = 'mitchfit_checklist_';
 
-function getData() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultData();
-  } catch(e) { return defaultData(); }
-}
-
-function saveData(d) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(d));
-}
+// In-memory cache — all sync code reads from here
+let _cache = null;
+let _learnedCache = null;
 
 function defaultData() {
   return {
@@ -1201,16 +1185,89 @@ function defaultData() {
   };
 }
 
+// Synchronous read — always from in-memory cache
+function getData() {
+  return _cache || defaultData();
+}
+
+// Write-through save — updates cache and persists to artifact storage
+async function saveData(d) {
+  _cache = d;
+  try {
+    await window.storage.set(STORAGE_KEY, d);
+  } catch(e) { console.warn('Storage save failed:', e); }
+}
+
+// Synchronous save — updates cache immediately, persists in background
+function saveDataSync(d) {
+  _cache = d;
+  window.storage.set(STORAGE_KEY, d).catch(e => console.warn('Storage save failed:', e));
+}
+
+// Learned foods cache
+function getLearnedFoods() {
+  return _learnedCache || {};
+}
+
+async function saveLearnedFoods(learned) {
+  _learnedCache = learned;
+  try {
+    await window.storage.set(LEARNED_STORAGE_KEY, learned);
+  } catch(e) { console.warn('Learned storage save failed:', e); }
+}
+
+// Checklist manual checks (per-day)
+function getChecklistKey() {
+  const today = new Date().toISOString().split('T')[0];
+  return CHECKLIST_STORAGE_PREFIX + today;
+}
+
+// Load all data from artifact storage into memory — called once on init
+async function loadAllData() {
+  // Main data
+  try {
+    const result = await window.storage.get(STORAGE_KEY);
+    if (result && result.value) {
+      // Handle both raw object and JSON string (backward compat)
+      _cache = typeof result.value === 'string'
+        ? JSON.parse(result.value)
+        : result.value;
+    } else {
+      _cache = defaultData();
+    }
+  } catch(e) {
+    _cache = defaultData();
+  }
+
+  // Learned foods
+  try {
+    const result = await window.storage.get(LEARNED_STORAGE_KEY);
+    if (result && result.value) {
+      _learnedCache = typeof result.value === 'string'
+        ? JSON.parse(result.value)
+        : result.value;
+    } else {
+      _learnedCache = {};
+    }
+  } catch(e) {
+    _learnedCache = {};
+  }
+}
+
+
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 
-function init() {
+async function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('wo-date').value = today;
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
+
+  // Load all persisted data into memory first
+  await loadAllData();
 
   renderAll();
   setupCoach();
@@ -1287,14 +1344,19 @@ function getChecklistKey() {
 }
 
 function getManualChecks() {
-  try { return JSON.parse(localStorage.getItem(getChecklistKey())) || {}; }
-  catch { return {}; }
+  // Read from main data cache under today's key
+  const d = getData();
+  const today = new Date().toISOString().split('T')[0];
+  return (d.checklists && d.checklists[today]) || {};
 }
 
 function toggleManualCheck(id) {
-  const manual = getManualChecks();
-  manual[id] = !manual[id];
-  localStorage.setItem(getChecklistKey(), JSON.stringify(manual));
+  const d = getData();
+  const today = new Date().toISOString().split('T')[0];
+  if (!d.checklists) d.checklists = {};
+  if (!d.checklists[today]) d.checklists[today] = {};
+  d.checklists[today][id] = !d.checklists[today][id];
+  saveDataSync(d);
   renderChecklist();
   renderDashboard();
 }
@@ -1939,7 +2001,7 @@ function saveWorkout() {
   if (!exercises.length) { alert('Add at least one exercise.'); return; }
 
   d.workoutLogs.push({ date, type, exercises, notes, timestamp: Date.now() });
-  saveData(d);
+  saveDataSync(d);
 
   document.getElementById('wo-notes').value = '';
   resetWorkoutPlanner();
@@ -1998,7 +2060,7 @@ function deleteWorkout(i) {
   const logs = [...d.workoutLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
   const target = logs[i];
   d.workoutLogs = d.workoutLogs.filter(w => w.timestamp !== target.timestamp);
-  saveData(d);
+  saveDataSync(d);
   renderAll();
 }
 
@@ -2132,20 +2194,14 @@ function buildAliasMap() {
 const ALIAS_MAP = buildAliasMap();
 
 // ── LEARNED FOOD CACHE ──────────────────────────────────────────────
-// Stores API lookups in localStorage so they work offline next time
-const LEARNED_KEY = 'mitchfit_learned_foods';
-
-function getLearnedFoods() {
-  try { return JSON.parse(localStorage.getItem(LEARNED_KEY)) || {}; }
-  catch { return {}; }
-}
+// Stores API lookups in artifact storage so they persist across sessions
+// Learned foods are managed via getLearnedFoods() / saveLearnedFoods() in the data layer
 
 function learnFood(desc, cal, protein, carbs, fat) {
   const learned = getLearnedFoods();
-  // Normalize the key: lowercase, trimmed
   const key = desc.toLowerCase().trim();
   learned[key] = { cal, protein, carbs, fat, learnedAt: Date.now() };
-  localStorage.setItem(LEARNED_KEY, JSON.stringify(learned));
+  saveLearnedFoods(learned); // async write-through, no need to await
 }
 
 function checkLearnedCache(desc) {
@@ -2209,12 +2265,6 @@ async function estimateFood() {
   const box = document.getElementById('estimate-box');
   box.style.display = 'block';
 
-  if (!d.apiKey) {
-    // No API key at all
-    showNoMatch(desc, 'No API key set. Go to the Coach tab and add your key, then try again.');
-    return;
-  }
-
   // Show loading
   box.style.borderColor = 'var(--accent)';
   document.getElementById('estimate-breakdown').innerHTML =
@@ -2233,13 +2283,9 @@ Respond with ONLY this JSON, no other words:
 
 Use integers. Use USDA values. Account for quantity if specified.`;
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': d.apiKey,
-        'anthropic-version': '2023-06-01'
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 200,
@@ -2585,7 +2631,7 @@ function saveFood() {
   if (!entry.name) { alert('Enter a food description.'); return; }
 
   d.foodLogs.push(entry);
-  saveData(d);
+  saveDataSync(d);
 
   ['food-name','food-cal','food-protein','food-carbs','food-fat','food-water'].forEach(id => {
     document.getElementById(id).value = '';
@@ -2699,7 +2745,7 @@ function renderFoodHistory() {
 function deleteFood(i) {
   const d = getData();
   d.foodLogs.splice(i, 1);
-  saveData(d);
+  saveDataSync(d);
   renderAll();
 }
 
@@ -2728,7 +2774,7 @@ function saveWeight() {
     if (nextGoal) d.currentGoal = nextGoal;
   }
 
-  saveData(d);
+  saveDataSync(d);
   document.getElementById('wt-val').value = '';
   document.getElementById('wt-notes').value = '';
   renderAll();
@@ -2891,50 +2937,49 @@ function renderWeightChart(logs) {
 // ═══════════════════════════════════════════
 
 function setupCoach() {
+  if (_cache === null) { setTimeout(setupCoach, 100); return; }
   const d = getData();
-  const apiKeyEl = document.getElementById('api-key-setup');
-  const coachUiEl = document.getElementById('coach-ui');
+  renderCoachHistory();
+  if (!d.coachHistory || !d.coachHistory.length) {
+    addCoachMessage('coach', `Hey Mitch. I'm your AI fitness coach. I have full access to your workout logs, food logs, and weight history — so I will always know what you're actually doing, not what you think you're doing.
 
-  if (!d.apiKey) {
-    apiKeyEl.style.display = 'block';
-    coachUiEl.style.display = 'none';
-  } else {
-    apiKeyEl.style.display = 'none';
-    coachUiEl.style.display = 'block';
-    renderCoachHistory();
+You're at 273 lbs. Your next target is 268. That's 5 lbs. Based on your plan — 2,300 calories/day, 185g protein, and 3 workouts/week — you should hit that in 5-6 weeks.
 
-    if (!d.coachHistory.length) {
-      addCoachMessage('coach', `Hey Mitch. I'm your AI fitness coach. I have full access to your workout logs, food logs, and weight history — so I will always know what you're actually doing, not what you think you're doing.
-
-You're at 273 lbs. Your next target is 268. That's 5 lbs. Based on your plan — 2,300 calories/day, 185g protein, and 3 workouts/week — you should hit that in 5–6 weeks.
-
-Here's my first challenge to you: most people check in with a coach when things are going *well*. I need you to check in when things go sideways. That's when this matters. So whenever you eat off-plan, skip a workout, or feel like quitting — that's when you message me.
+Here's my first challenge: most people check in with a coach when things are going well. I need you to check in when things go sideways. Whenever you eat off-plan, skip a workout, or feel like quitting — that's when you message me.
 
 What questions do you have, or do you want to get started?`);
-    }
   }
 }
 
-function saveApiKey() {
+async function saveApiKey() {
   const key = document.getElementById('api-key-input').value.trim();
-  if (!key.startsWith('sk-ant-')) { alert('That doesn\'t look like a valid Anthropic API key. It should start with sk-ant-'); return; }
+  if (!key.startsWith('sk-ant-')) {
+    alert('That doesn\'t look like a valid Anthropic API key. It should start with sk-ant-');
+    return;
+  }
   const d = getData();
   d.apiKey = key;
-  saveData(d);
+  _cache = d; // update cache immediately
+  try {
+    await window.storage.set(STORAGE_KEY, d);
+  } catch(e) { console.warn('Key save failed:', e); }
   setupCoach();
 }
 
-function changeApiKey() {
+async function changeApiKey() {
   const d = getData();
   d.apiKey = '';
-  saveData(d);
+  _cache = d;
+  try {
+    await window.storage.set(STORAGE_KEY, d);
+  } catch(e) { console.warn('Key clear failed:', e); }
   setupCoach();
 }
 
 function addCoachMessage(role, text) {
   const d = getData();
   d.coachHistory.push({ role, text, time: Date.now() });
-  saveData(d);
+  saveDataSync(d);
   renderCoachHistory();
 }
 
@@ -2963,8 +3008,6 @@ async function sendCoachMessage() {
   if (!userMsg) return;
 
   const d = getData();
-  if (!d.apiKey) { alert('Set your API key first.'); return; }
-
   input.value = '';
   addCoachMessage('user', userMsg);
 
@@ -3027,9 +3070,9 @@ Keep responses concise (3-6 sentences usually). Be specific — reference actual
   messages.push({ role: 'user', content: userMsg });
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
+    const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': d.apiKey, 'anthropic-version': '2023-06-01' },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
         max_tokens: 500,
