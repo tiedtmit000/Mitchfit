@@ -2072,73 +2072,116 @@ function addExerciseRow() {
 // ═══════════════════════════════════════════
 
 // Database: [cal_per_oz, protein_per_oz, carbs_per_oz, fat_per_oz, default_oz, aliases]
+// default_oz = what the average American actually eats in one sitting, not FDA serving size
 const FOOD_DB = {
   // ── PROTEINS ──
-  'chicken breast':     [47, 8.8, 0, 1.0, 8,  ['chicken','grilled chicken','baked chicken','chicken breast','rotisserie chicken breast']],
-  'chicken thigh':      [63, 7.0, 0, 3.8, 4,  ['chicken thigh','dark chicken','chicken leg']],
-  'ground turkey':      [55, 7.8, 0, 2.8, 8,  ['ground turkey','turkey burger','turkey meat']],
-  'ground beef 80':     [77, 6.8, 0, 5.8, 6,  ['ground beef','hamburger','burger','beef 80/20','80/20 beef']],
-  'ground beef 93':     [52, 8.0, 0, 2.2, 6,  ['lean ground beef','93% beef','93/7 beef','lean beef']],
-  'sirloin':            [52, 8.0, 0, 2.3, 8,  ['sirloin','steak','beef steak','strip steak','ribeye','filet']],
-  'salmon':             [58, 6.4, 0, 3.5, 6,  ['salmon','atlantic salmon','sockeye','fish']],
-  'tilapia':            [37, 7.7, 0, 0.8, 6,  ['tilapia','white fish','cod','catfish']],
-  'shrimp':             [28, 5.7, 0, 0.4, 4,  ['shrimp','prawn']],
-  'tuna can':           [30, 6.7, 0, 0.3, 5,  ['canned tuna','tuna','tuna can']],
-  'pork tenderloin':    [47, 8.2, 0, 1.4, 6,  ['pork','pork tenderloin','pork loin']],
-  'eggs':               [43, 3.5, 0.2, 3.0, 1.75, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg','egg whites']],
-  'egg whites':         [15, 3.5, 0.2, 0.05,1.1, ['egg white','egg whites','liquid egg']],
-  'greek yogurt':       [17, 2.0, 1.5, 0.3, 6,  ['greek yogurt','plain greek yogurt','chobani','oikos','fage']],
-  'cottage cheese':     [25, 3.5, 0.7, 0.5, 4,  ['cottage cheese']],
-  'protein shake':      [130, 25, 5, 2.5, 1,   ['protein shake','protein powder','whey','casein','protein drink','muscle milk']],
-  'deli turkey':        [31, 5.5, 0.5, 0.6, 2,  ['deli turkey','turkey slice','turkey cold cut']],
-  'string cheese':      [80, 6.0, 0.5, 5.5, 1,  ['string cheese','mozzarella stick']],
-  'almonds':            [164, 6.0, 6.0, 14, 1,  ['almonds','almond']],
-  'peanut butter':      [166, 7.0, 6.0, 14, 2,  ['peanut butter','pb','peanut butter spoon']],
+  // Avg store chicken breast is 8-10oz raw, loses ~25% to cooking = ~6-7oz cooked. Americans typically eat the whole breast.
+  'chicken breast':     [47, 8.8, 0, 1.0, 7,   ['chicken','grilled chicken','baked chicken','chicken breast','rotisserie chicken breast']],
+  // Thighs sold 2-pack, avg thigh = 4oz cooked. People eat 2.
+  'chicken thigh':      [63, 7.0, 0, 3.8, 8,   ['chicken thigh','dark chicken','chicken leg']],
+  // Ground turkey — avg home cook uses 5-6oz per person in a meal
+  'ground turkey':      [55, 7.8, 0, 2.8, 6,   ['ground turkey','turkey burger','turkey meat']],
+  // Ground beef — quarter lb patty is 4oz raw/3oz cooked but Americans avg 6oz in meals
+  'ground beef 80':     [77, 6.8, 0, 5.8, 6,   ['ground beef','hamburger','burger','beef 80/20','80/20 beef']],
+  'ground beef 93':     [52, 8.0, 0, 2.2, 6,   ['lean ground beef','93% beef','93/7 beef','lean beef']],
+  // Steakhouse avg portion is 10-12oz, home cook is 8oz
+  'sirloin':            [52, 8.0, 0, 2.3, 10,  ['sirloin','steak','beef steak','strip steak','ribeye','filet']],
+  // Salmon fillet from store avg 6oz, people eat the whole fillet
+  'salmon':             [58, 6.4, 0, 3.5, 6,   ['salmon','atlantic salmon','sockeye','fish']],
+  'tilapia':            [37, 7.7, 0, 0.8, 6,   ['tilapia','white fish','cod','catfish']],
+  // Shrimp — avg appetizer/meal portion is 4-6oz
+  'shrimp':             [28, 5.7, 0, 0.4, 5,   ['shrimp','prawn']],
+  // Canned tuna — standard can is 5oz drained, people use the whole can
+  'tuna can':           [30, 6.7, 0, 0.3, 5,   ['canned tuna','tuna','tuna can']],
+  'pork tenderloin':    [47, 8.2, 0, 1.4, 6,   ['pork','pork tenderloin','pork loin']],
+  // Eggs — large egg = 1.75oz. Americans avg 2 eggs at breakfast, not 1.
+  'eggs':               [43, 3.5, 0.2, 3.0, 3.5, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg']],
+  'egg whites':         [15, 3.5, 0.2, 0.05, 3.5, ['egg white','egg whites','liquid egg']],
+  // Greek yogurt — single serve cup is 5.3oz (Chobani standard), people eat one cup
+  'greek yogurt':       [17, 2.0, 1.5, 0.3, 5.3, ['greek yogurt','plain greek yogurt','chobani','oikos','fage']],
+  // Cottage cheese — half cup = 4oz is realistic single serving
+  'cottage cheese':     [25, 3.5, 0.7, 0.5, 4,   ['cottage cheese']],
+  // Protein shake — one scoop + liquid = ~130 cal total, stored as per-serving with default 1
+  'protein shake':      [130, 25, 5, 2.5, 1,    ['protein shake','protein powder','whey','casein','protein drink','muscle milk']],
+  // Deli turkey — avg sandwich uses 4-5 slices = ~3oz
+  'deli turkey':        [31, 5.5, 0.5, 0.6, 3,   ['deli turkey','turkey slice','turkey cold cut']],
+  'string cheese':      [80, 6.0, 0.5, 5.5, 1,   ['string cheese','mozzarella stick']],
+  // Almonds — avg handful = 1oz (23 almonds). People rarely eat just one handful though — use 1.5oz
+  'almonds':            [164, 6.0, 6.0, 14, 1.5, ['almonds','almond']],
+  // Peanut butter — avg American uses 2 tbsp = 1oz on sandwich, often more
+  'peanut butter':      [166, 7.0, 6.0, 14, 2,   ['peanut butter','pb','peanut butter spoon']],
   // ── GRAINS / CARBS ──
-  'oatmeal':            [17, 0.75, 3.0, 0.35, 8, ['oatmeal','oats','rolled oats','instant oats','oat']],
-  'brown rice':         [32, 0.65, 6.8, 0.3, 6,  ['brown rice','brown rice cup']],
-  'white rice':         [36, 0.65, 7.9, 0.1, 6,  ['white rice','rice','jasmine rice','cooked rice']],
-  'quinoa':             [34, 1.5, 5.9, 0.6, 6,  ['quinoa']],
-  'sweet potato':       [24, 0.5, 5.5, 0.05,6,  ['sweet potato','yam']],
-  'white potato':       [22, 0.5, 5.0, 0.03,6,  ['potato','baked potato','russet potato','white potato']],
-  'whole wheat bread':  [69, 2.8,11.5, 1.0, 1,  ['whole wheat bread','wheat bread','whole grain bread','bread slice']],
-  'white bread':        [75, 2.5,14.0, 1.0, 1,  ['white bread','bread']],
-  'whole wheat tortilla':[130,4.0,22.0, 3.5, 1,  ['whole wheat tortilla','wheat tortilla','flour tortilla','tortilla']],
-  'pasta':              [40, 1.4, 8.0, 0.2, 6,  ['pasta','spaghetti','penne','noodles','cooked pasta']],
-  'black beans':        [27, 1.8, 4.8, 0.1, 6,  ['black beans','beans','kidney beans','pinto beans']],
-  'banana':             [25, 0.3, 6.4, 0.1, 4,  ['banana']],
-  'apple':              [15, 0.1, 3.9, 0.05,6,  ['apple']],
-  // ── VEGETABLES (low cal, minimal macros) ──
-  'broccoli':           [10, 0.8, 1.8, 0.1, 5,  ['broccoli','broccoli florets']],
-  'spinach':            [6,  0.8, 0.9, 0.1, 3,  ['spinach','baby spinach']],
-  'romaine':            [5,  0.4, 0.9, 0.1, 3,  ['romaine','lettuce','mixed greens','salad greens']],
-  'asparagus':          [6,  0.6, 1.1, 0.05,5,  ['asparagus']],
-  'zucchini':           [5,  0.4, 1.0, 0.1, 5,  ['zucchini','squash']],
-  'peppers':            [9,  0.3, 2.0, 0.1, 3,  ['peppers','bell pepper','pepper']],
-  'onion':              [11, 0.3, 2.6, 0.04,2,  ['onion','onions']],
-  'mixed vegetables':   [8,  0.5, 1.5, 0.1, 5,  ['mixed vegetables','veggies','vegetables']],
+  // Oatmeal — avg bowl is 1 cup dry = 3oz dry / 8oz cooked. Use cooked weight.
+  'oatmeal':            [17, 0.75, 3.0, 0.35, 8,  ['oatmeal','oats','rolled oats','instant oats','oat']],
+  // Rice — avg restaurant/home portion is 1.5-2 cups cooked = 9-12oz. Americans eat more rice than they think.
+  'brown rice':         [32, 0.65, 6.8, 0.3, 10,  ['brown rice','brown rice cup']],
+  'white rice':         [36, 0.65, 7.9, 0.1, 10,  ['white rice','rice','jasmine rice','cooked rice']],
+  'quinoa':             [34, 1.5, 5.9, 0.6, 8,   ['quinoa']],
+  // Sweet potato — avg medium store sweet potato = 5-6oz baked
+  'sweet potato':       [24, 0.5, 5.5, 0.05, 6,  ['sweet potato','yam']],
+  // Baked potato — avg restaurant potato is 10oz, avg home is 7-8oz
+  'white potato':       [22, 0.5, 5.0, 0.03, 8,  ['potato','baked potato','russet potato','white potato']],
+  // Bread — 1 slice is realistic for toast, but sandwiches use 2. Default to 1 slice.
+  'whole wheat bread':  [69, 2.8, 11.5, 1.0, 1,  ['whole wheat bread','wheat bread','whole grain bread','bread slice']],
+  'white bread':        [75, 2.5, 14.0, 1.0, 1,  ['white bread','bread']],
+  // Tortilla — large 10-inch flour tortilla = 1.8oz. That's what most wraps use.
+  'whole wheat tortilla':[130, 4.0, 22.0, 3.5, 1, ['whole wheat tortilla','wheat tortilla','flour tortilla','tortilla']],
+  // Pasta — avg American home portion is 2 cups cooked = 10oz. Way more than label.
+  'pasta':              [40, 1.4, 8.0, 0.2, 10,  ['pasta','spaghetti','penne','noodles','cooked pasta']],
+  // Beans — avg side/bowl portion is 1 cup = 6oz
+  'black beans':        [27, 1.8, 4.8, 0.1, 6,   ['black beans','beans','kidney beans','pinto beans']],
+  // Banana — avg medium banana = 4oz peeled
+  'banana':             [25, 0.3, 6.4, 0.1, 4,   ['banana']],
+  // Apple — avg medium apple = 6oz
+  'apple':              [15, 0.1, 3.9, 0.05, 6,  ['apple']],
+  // ── VEGETABLES ──
+  // Broccoli — avg side portion is 1.5-2 cups = 5-6oz
+  'broccoli':           [10, 0.8, 1.8, 0.1, 6,   ['broccoli','broccoli florets']],
+  // Spinach — raw spinach is airy, 2 cups = 2oz. Cooked collapses to 1 cup = 6oz. Default raw side.
+  'spinach':            [6,  0.8, 0.9, 0.1, 3,   ['spinach','baby spinach']],
+  // Salad — avg side salad portion = 3oz greens
+  'romaine':            [5,  0.4, 0.9, 0.1, 3,   ['romaine','lettuce','mixed greens','salad greens']],
+  'asparagus':          [6,  0.6, 1.1, 0.05, 5,  ['asparagus']],
+  'zucchini':           [5,  0.4, 1.0, 0.1, 5,   ['zucchini','squash']],
+  // Peppers — half a bell pepper as a side = ~3oz
+  'peppers':            [9,  0.3, 2.0, 0.1, 3,   ['peppers','bell pepper','pepper']],
+  'onion':              [11, 0.3, 2.6, 0.04, 2,  ['onion','onions']],
+  'mixed vegetables':   [8,  0.5, 1.5, 0.1, 6,   ['mixed vegetables','veggies','vegetables']],
   // ── DAIRY / FATS ──
-  'whole milk':         [18, 1.0, 1.4, 1.0, 8,  ['milk','whole milk','2% milk','dairy milk']],
-  'cheddar cheese':     [114,7.0, 0.4, 9.4, 1,  ['cheddar','cheddar cheese','cheese','shredded cheese']],
-  'avocado':            [45, 0.5, 2.4, 4.1, 2,  ['avocado','avocado half']],
-  'olive oil':          [250,0,   0,   28,  0.5, ['olive oil','oil']],
-  // ── FAST FOOD ──
-  'big mac':            [550,25, 46, 30,  1,   ['big mac','bigmac']],
-  'mcchicken':          [400,14, 42, 17,  1,   ['mcchicken','mcdouble','mcdonald']],
-  'chick fil a sandwich':[440,28,40, 19,  1,   ['chick fil a','chickfila','chick-fil-a sandwich']],
-  'chipotle burrito':   [1050,52,103,47, 1,   ['chipotle burrito','chipotle']],
-  'chipotle bowl':      [750, 45, 75, 28, 1,   ['chipotle bowl','chipotle rice bowl']],
-  'subway 6in turkey':  [280, 18, 43, 4.5,1,  ['subway turkey','6 inch turkey','subway sandwich']],
-  'pizza slice':        [285, 12, 36, 10, 1,   ['pizza','pizza slice','pepperoni pizza']],
-  'caesar salad':       [480, 10, 20, 40, 1,   ['caesar salad','restaurant caesar']],
+  // Milk — avg glass = 8oz, but Americans also use it in cereal (4oz) or coffee. Default 8oz glass.
+  'whole milk':         [18, 1.0, 1.4, 1.0, 8,   ['milk','whole milk','2% milk','dairy milk']],
+  // Cheese — avg slice on sandwich = 0.75oz. People add 1-2 slices. Default 1oz (1.5 slices).
+  'cheddar cheese':     [114, 7.0, 0.4, 9.4, 1,  ['cheddar','cheddar cheese','cheese','shredded cheese']],
+  // Avocado — half an avocado = ~3oz flesh. That's a realistic serving on toast or in a bowl.
+  'avocado':            [45, 0.5, 2.4, 4.1, 3,   ['avocado','avocado half']],
+  // Olive oil — avg cooking drizzle/tablespoon = 0.5oz
+  'olive oil':          [250, 0, 0, 28, 0.5,      ['olive oil','oil']],
+  // ── FAST FOOD — already per-item totals, realistic ──
+  'big mac':            [550, 25, 46, 30,  1,     ['big mac','bigmac']],
+  'mcchicken':          [400, 14, 42, 17,  1,     ['mcchicken','mcdouble','mcdonald']],
+  'chick fil a sandwich':[440, 28, 40, 19, 1,     ['chick fil a','chickfila','chick-fil-a sandwich']],
+  // Chipotle portions are notoriously large — their own data shows burritos avg 1050+ cal
+  'chipotle burrito':   [1050, 52, 103, 47, 1,   ['chipotle burrito','chipotle']],
+  'chipotle bowl':      [750, 45, 75, 28,  1,     ['chipotle bowl','chipotle rice bowl']],
+  'subway 6in turkey':  [280, 18, 43, 4.5, 1,    ['subway turkey','6 inch turkey','subway sandwich']],
+  // Pizza — NY style slice avg 285 cal, but most Americans eat 2-3 slices. Default 1 slice, count handles multiples.
+  'pizza slice':        [285, 12, 36, 10,  1,     ['pizza','pizza slice','pepperoni pizza']],
+  'caesar salad':       [480, 10, 20, 40,  1,     ['caesar salad','restaurant caesar']],
   // ── BREAKFAST / MISC ──
-  'bagel':              [245, 9,  48, 1.5, 1,  ['bagel','plain bagel','everything bagel']],
-  'granola bar':        [193, 4,  28, 7,   1,  ['granola bar','nature valley','kind bar','bar']],
-  'coffee black':       [2,   0.3, 0, 0,   8,  ['coffee','black coffee']],
-  'latte':              [120, 6,  12, 5,   12, ['latte','coffee latte','starbucks latte']],
-  'orange juice':       [112, 2,  26, 0.5, 8,  ['orange juice','oj','juice']],
-  'soda':               [140, 0,  39, 0,   12, ['soda','coke','pepsi','sprite','pop']],
-  'beer':               [153, 1.6,13, 0,   12, ['beer','light beer']],
+  // Bagel — avg store/deli bagel is 4oz, NOT the 1oz FDA serving. Big difference.
+  'bagel':              [75, 2.25, 14.5, 0.5, 4,  ['bagel','plain bagel','everything bagel']],
+  // Granola bar — standard bar = 1.4oz. One bar is a realistic snack.
+  'granola bar':        [138, 2.8, 19.5, 5, 1.4,  ['granola bar','nature valley','kind bar','bar']],
+  // Coffee — 12oz standard drip coffee, essentially zero calories black
+  'coffee black':       [0.25, 0.04, 0, 0, 12,    ['coffee','black coffee']],
+  // Latte — 12oz medium is standard order
+  'latte':              [10, 0.5, 1.0, 0.42, 12,  ['latte','coffee latte','starbucks latte']],
+  // OJ — 8oz glass is standard pour
+  'orange juice':       [14, 0.25, 3.25, 0.06, 8, ['orange juice','oj','juice']],
+  // Soda — 12oz can is the standard unit Americans drink
+  'soda':               [11.7, 0, 3.25, 0, 12,    ['soda','coke','pepsi','sprite','pop']],
+  // Beer — 12oz standard bottle/can
+  'beer':               [12.75, 0.13, 1.1, 0, 12, ['beer','light beer']],
 };
 
 // Portion size patterns
@@ -2334,7 +2377,12 @@ ${listStr}
 Format (one object per item, same order):
 [{"cal":0,"protein":0,"carbs":0,"fat":0,"label":"short name","qty":"serving size used"},...]
 
-Use USDA values. Integers only. Account for quantities mentioned in each item description.`;
+Rules:
+- Use USDA nutritional values
+- Integers only for cal/protein/carbs/fat
+- CRITICAL: Use real-world American portion sizes, NOT FDA label serving sizes. FDA servings are set by manufacturers to minimize apparent calories and do not reflect what people actually eat. Examples of correct real-world defaults: chicken breast = 7oz cooked (not 3oz), pasta = 10oz cooked (not 2oz), steak = 10oz (not 3oz), bagel = 4oz (not 1oz), rice = 10oz cooked (not 4oz), beer = 12oz can, soda = 12oz can.
+- If a quantity is explicitly stated in the description, use that exact quantity
+- If no quantity is stated, use the realistic amount an average American would consume in one sitting`;
 
     const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
@@ -2501,10 +2549,10 @@ function matchSegment(seg) {
     }
   }
 
-  // Eggs special case: count = number of eggs
-  if (foodKey === 'eggs' && qtySource === 'count') {
+  // Eggs already handled above as special case.
+  // For ALL counted items: 1 beer = 1 × 12oz, 2 slices bread = 2 × 1oz, etc.
+  if (qtySource === 'count') {
     oz = count * defaultOz;
-    qtySource = 'explicit';
   } else if (oz === null) {
     oz = defaultOz;
   }
