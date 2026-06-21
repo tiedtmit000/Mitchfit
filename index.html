@@ -1261,6 +1261,18 @@ function init() {
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
+
+  // Purge garbage learned cache entries (zero cal, short keys that are just numbers)
+  const learned = getLearnedFoods();
+  let dirty = false;
+  for (const key of Object.keys(learned)) {
+    if (learned[key].cal <= 0 || /^\d+(\.\d+)?$/.test(key.trim())) {
+      delete learned[key];
+      dirty = true;
+    }
+  }
+  if (dirty) saveLearnedFoods(learned);
+
   renderAll();
   setupCoach();
 }
@@ -2094,9 +2106,9 @@ const FOOD_DB = {
   // Canned tuna — standard can is 5oz drained, people use the whole can
   'tuna can':           [30, 6.7, 0, 0.3, 5,   ['canned tuna','tuna','tuna can']],
   'pork tenderloin':    [47, 8.2, 0, 1.4, 6,   ['pork','pork tenderloin','pork loin']],
-  // Eggs — large egg = 1.75oz. Americans avg 2 eggs at breakfast, not 1.
-  'eggs':               [43, 3.5, 0.2, 3.0, 3.5, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg']],
-  'egg whites':         [15, 3.5, 0.2, 0.05, 3.5, ['egg white','egg whites','liquid egg']],
+  // Eggs: default_oz = 1 large egg = 1.75oz. Count multiplies correctly: 2 eggs = 2 × 1.75 = 3.5oz = ~150 cal
+  'eggs':               [40, 3.4, 0.2, 2.8, 1.75, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg']],
+  'egg whites':         [15, 3.6, 0.2, 0.05, 1.1,  ['egg white','egg whites','liquid egg']],
   // Greek yogurt — single serve cup is 5.3oz (Chobani standard), people eat one cup
   'greek yogurt':       [17, 2.0, 1.5, 0.3, 5.3, ['greek yogurt','plain greek yogurt','chobani','oikos','fage']],
   // Cottage cheese — half cup = 4oz is realistic single serving
@@ -2186,6 +2198,8 @@ const FOOD_DB = {
 
 // Portion size patterns
 const QTY_PATTERNS = [
+  // fractions like 1/2, 1/3, 2/3, 3/4 — must come before other number patterns
+  [/^(\d+)\/(\d+)/,                   (n, d) => null, true], // fraction = count modifier, handled below
   // weight
   [/(\d+(?:\.\d+)?)\s*oz/i,          w => parseFloat(w)],
   [/(\d+(?:\.\d+)?)\s*ounce/i,       w => parseFloat(w)],
@@ -2198,8 +2212,8 @@ const QTY_PATTERNS = [
   [/(\d+(?:\.\d+)?)\s*tsp/i,         w => parseFloat(w) * 0.167],
   [/(\d+(?:\.\d+)?)\s*scoop/i,       w => parseFloat(w) * 1.1],
   // count (use default oz)
-  [/(\d+)\s*(?:piece|slice|piece|patty|fillet|breast|thigh|can|bottle|serving)/i, w => null],
-  [/^(\d+)\s/,                        w => null], // leading number = count
+  [/(\d+)\s*(?:piece|slice|patty|fillet|breast|thigh|can|bottle|serving|ring|strip|link|ball|cup)/i, w => null],
+  [/^(\d+(?:\.\d+)?)\s/,             w => null], // leading number = count
 ];
 
 const SIZE_WORDS = {
@@ -2268,14 +2282,26 @@ async function estimateFood() {
   const desc = document.getElementById('food-name').value.trim();
   if (!desc) { alert('Describe what you ate first.'); return; }
 
-  // Split into segments immediately
-  const segments = desc.toLowerCase()
+  // Pre-process fractions before splitting so 1/2 doesn't get torn apart
+  // Replace fraction patterns with decimal equivalents
+  const normalized = desc.toLowerCase()
+    .replace(/(\d+)\s+and\s+(\d+)\/(\d+)/g, (_, w, n, d) => (parseInt(w) + parseInt(n)/parseInt(d)).toFixed(3))
+    .replace(/(\d+)\/(\d+)/g, (_, n, d) => (parseInt(n)/parseInt(d)).toFixed(3))
+    .replace(/\bof\s+a\b|\bof\s+an\b/g, ' ') // strip "of a" / "of an"
+    .replace(/\ba\s+(?=[a-z])/g, ' ');        // strip leading "a " before food
+
+  // Split into segments
+  const segments = normalized
     .split(/[,+&\/]|(?:\band\b)|(?:\bwith\b)|(?:\bplus\b)/)
     .map(s => s.trim())
-    .filter(Boolean);
+    .filter(s => {
+      if (!s) return false;
+      if (/^\d+(\.\d+)?$/.test(s)) return false;
+      return true;
+    });
 
   // If only one segment, treat whole string as one segment
-  if (!segments.length) segments.push(desc.toLowerCase());
+  if (!segments.length) segments.push(normalized);
 
   // Show loading state
   const box = document.getElementById('estimate-box');
@@ -2432,21 +2458,24 @@ Rules:
   }
 }
 
-// Check learned cache for a single segment
 function checkLearnedSegment(seg, learned) {
   const key = seg.trim();
-  if (learned[key]) {
-    const e = learned[key];
+  const e = learned[key];
+  // Reject zero-cal entries — these are garbage from bad previous lookups
+  if (e && e.cal > 0) {
     return { label: key, qty: 'learned', cal: e.cal, protein: e.protein,
       carbs: e.carbs, fat: e.fat, conf: 0.9 };
   }
-  // Partial word match
-  const words = key.split(/\s+/).filter(w => w.length > 2);
-  for (const [lKey, e] of Object.entries(learned)) {
-    const matchCount = words.filter(w => lKey.includes(w)).length;
-    if (words.length > 0 && matchCount === words.length) {
-      return { label: lKey, qty: 'learned (partial)', cal: e.cal, protein: e.protein,
-        carbs: e.carbs, fat: e.fat, conf: 0.78 };
+  // Partial word match — only if segment has real food words (length > 3)
+  if (key.length > 3) {
+    const words = key.split(/\s+/).filter(w => w.length > 2);
+    for (const [lKey, le] of Object.entries(learned)) {
+      if (le.cal <= 0) continue; // skip garbage
+      const matchCount = words.filter(w => lKey.includes(w)).length;
+      if (words.length > 0 && matchCount === words.length) {
+        return { label: lKey, qty: 'learned (partial)', cal: le.cal, protein: le.protein,
+          carbs: le.carbs, fat: le.fat, conf: 0.78 };
+      }
     }
   }
   return null;
@@ -2534,7 +2563,23 @@ function matchSegment(seg) {
   let count = 1;
   let qtySource = 'default';
 
-  for (const [pattern, converter] of QTY_PATTERNS) {
+  // Pre-process fractions: 1/2, 1/3, 2/3, 3/4, etc.
+  // Converts them to a decimal count before the main pattern loop
+  const fracMatch = seg.match(/^(\d+)\/(\d+)\s*/);
+  if (fracMatch) {
+    count = parseInt(fracMatch[1]) / parseInt(fracMatch[2]);
+    qtySource = 'count';
+  }
+
+  // Also handle "1 and 1/2" or "1.5" style
+  const mixedMatch = seg.match(/^(\d+)\s+and\s+(\d+)\/(\d+)\s*/);
+  if (mixedMatch) {
+    count = parseInt(mixedMatch[1]) + parseInt(mixedMatch[2]) / parseInt(mixedMatch[3]);
+    qtySource = 'count';
+  }
+
+  if (qtySource === 'default') {
+    for (const [pattern, converter] of QTY_PATTERNS) {
     const m = seg.match(pattern);
     if (m) {
       const converted = converter(m[1]);
@@ -2542,12 +2587,12 @@ function matchSegment(seg) {
         oz = converted;
         qtySource = 'explicit';
       } else {
-        count = parseInt(m[1]) || 1;
+        count = parseFloat(m[1]) || 1;
         qtySource = 'count';
       }
       break;
     }
-  }
+  } } // end for loop, end if qtySource === 'default'
 
   // Eggs already handled above as special case.
   // For ALL counted items: 1 beer = 1 × 12oz, 2 slices bread = 2 × 1oz, etc.
