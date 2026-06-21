@@ -1160,118 +1160,111 @@
 
 <script>
 // ═══════════════════════════════════════════
-// DATA LAYER — Artifact persistent storage
-// In-memory cache + write-through to window.storage
+// DATA LAYER — localStorage (GitHub Pages)
 // ═══════════════════════════════════════════
 
-const STORAGE_KEY = 'mitchfit_v1';
-const LEARNED_STORAGE_KEY = 'mitchfit_learned';
-const CHECKLIST_STORAGE_PREFIX = 'mitchfit_checklist_';
+const LS_WEIGHTS  = 'mitchfit_weights';
+const LS_WORKOUTS = 'mitchfit_workouts';
+const LS_FOOD     = 'mitchfit_food';
+const LS_COACH    = 'mitchfit_coach';
+const LS_SETTINGS = 'mitchfit_settings';
+const LS_LEARNED  = 'mitchfit_learned';
 
-// In-memory cache — all sync code reads from here
 let _cache = null;
 let _learnedCache = null;
 
 function defaultData() {
   return {
-    startWeight: 273,
-    weightLogs: [],
-    workoutLogs: [],
-    foodLogs: [],
-    coachHistory: [],
-    apiKey: '',
-    currentGoal: 268,
-    milestones: [268, 263, 258, 253, 248, 243, 238, 233, 228, 223]
+    startWeight:  273,
+    currentGoal:  268,
+    milestones:   [268,263,258,253,248,243,238,233,228,223],
+    apiKey:       '',
+    weightLogs:   [],
+    workoutLogs:  [],
+    foodLogs:     [],
+    checklists:   {},
+    coachHistory: []
   };
 }
 
-// Synchronous read — always from in-memory cache
+function lsGet(key) {
+  try { return JSON.parse(localStorage.getItem(key)); }
+  catch(e) { return null; }
+}
+
+function lsSet(key, value) {
+  try { localStorage.setItem(key, JSON.stringify(value)); }
+  catch(e) { console.warn('localStorage set failed:', key, e); }
+}
+
 function getData() {
-  return _cache || defaultData();
+  if (_cache) return _cache;
+  const def = defaultData();
+  const settings = lsGet(LS_SETTINGS);
+  const weights  = lsGet(LS_WEIGHTS);
+  const workouts = lsGet(LS_WORKOUTS);
+  const food     = lsGet(LS_FOOD);
+  const coach    = lsGet(LS_COACH);
+  _cache = {
+    startWeight:  settings?.startWeight  ?? def.startWeight,
+    currentGoal:  settings?.currentGoal  ?? def.currentGoal,
+    milestones:   settings?.milestones   ?? def.milestones,
+    apiKey:       settings?.apiKey       ?? '',
+    weightLogs:   weights?.weightLogs    ?? [],
+    workoutLogs:  workouts?.workoutLogs  ?? [],
+    foodLogs:     food?.foodLogs         ?? [],
+    checklists:   food?.checklists       ?? {},
+    coachHistory: coach?.coachHistory    ?? []
+  };
+  return _cache;
 }
 
-// Write-through save — updates cache and persists to artifact storage
-async function saveData(d) {
+function saveData(d) {
   _cache = d;
-  try {
-    await window.storage.set(STORAGE_KEY, d);
-  } catch(e) { console.warn('Storage save failed:', e); }
+  lsSet(LS_SETTINGS, { startWeight: d.startWeight, currentGoal: d.currentGoal, milestones: d.milestones, apiKey: d.apiKey || '' });
+  lsSet(LS_WEIGHTS,  { weightLogs:   d.weightLogs   || [] });
+  lsSet(LS_WORKOUTS, { workoutLogs:  d.workoutLogs  || [] });
+  lsSet(LS_FOOD,     { foodLogs:     d.foodLogs     || [], checklists: d.checklists || {} });
+  lsSet(LS_COACH,    { coachHistory: d.coachHistory || [] });
 }
 
-// Synchronous save — updates cache immediately, persists in background
-function saveDataSync(d) {
-  _cache = d;
-  window.storage.set(STORAGE_KEY, d).catch(e => console.warn('Storage save failed:', e));
-}
+const saveDataSync = saveData;
 
-// Learned foods cache
 function getLearnedFoods() {
-  return _learnedCache || {};
+  if (_learnedCache) return _learnedCache;
+  _learnedCache = lsGet(LS_LEARNED) || {};
+  return _learnedCache;
 }
 
-async function saveLearnedFoods(learned) {
+function saveLearnedFoods(learned) {
   _learnedCache = learned;
-  try {
-    await window.storage.set(LEARNED_STORAGE_KEY, learned);
-  } catch(e) { console.warn('Learned storage save failed:', e); }
+  lsSet(LS_LEARNED, learned);
 }
 
-// Checklist manual checks (per-day)
+function learnFood(desc, cal, protein, carbs, fat) {
+  const learned = getLearnedFoods();
+  learned[desc.toLowerCase().trim()] = { cal, protein, carbs, fat, learnedAt: Date.now() };
+  saveLearnedFoods(learned);
+}
+
 function getChecklistKey() {
-  const today = new Date().toISOString().split('T')[0];
-  return CHECKLIST_STORAGE_PREFIX + today;
+  return 'mitchfit_checklist_' + new Date().toISOString().split('T')[0];
 }
-
-// Load all data from artifact storage into memory — called once on init
-async function loadAllData() {
-  // Main data
-  try {
-    const result = await window.storage.get(STORAGE_KEY);
-    if (result && result.value) {
-      // Handle both raw object and JSON string (backward compat)
-      _cache = typeof result.value === 'string'
-        ? JSON.parse(result.value)
-        : result.value;
-    } else {
-      _cache = defaultData();
-    }
-  } catch(e) {
-    _cache = defaultData();
-  }
-
-  // Learned foods
-  try {
-    const result = await window.storage.get(LEARNED_STORAGE_KEY);
-    if (result && result.value) {
-      _learnedCache = typeof result.value === 'string'
-        ? JSON.parse(result.value)
-        : result.value;
-    } else {
-      _learnedCache = {};
-    }
-  } catch(e) {
-    _learnedCache = {};
-  }
-}
-
 
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 
-async function init() {
+function init() {
   const today = new Date().toISOString().split('T')[0];
   document.getElementById('wo-date').value = today;
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
-
-  // Load all persisted data into memory first
-  await loadAllData();
-
   renderAll();
   setupCoach();
 }
+
 
 function renderAll() {
   renderChecklist();
@@ -1338,10 +1331,6 @@ const CHECKLIST_MESSAGES = [
   { min: 5, max: 5,  msg: '✅ Clean day. This is what consistent looks like.' }
 ];
 
-function getChecklistKey() {
-  const today = new Date().toISOString().split('T')[0];
-  return 'checklist_' + today;
-}
 
 function getManualChecks() {
   // Read from main data cache under today's key
@@ -2194,15 +2183,8 @@ function buildAliasMap() {
 const ALIAS_MAP = buildAliasMap();
 
 // ── LEARNED FOOD CACHE ──────────────────────────────────────────────
-// Stores API lookups in artifact storage so they persist across sessions
-// Learned foods are managed via getLearnedFoods() / saveLearnedFoods() in the data layer
+// ── LEARNED FOOD CACHE ──
 
-function learnFood(desc, cal, protein, carbs, fat) {
-  const learned = getLearnedFoods();
-  const key = desc.toLowerCase().trim();
-  learned[key] = { cal, protein, carbs, fat, learnedAt: Date.now() };
-  saveLearnedFoods(learned); // async write-through, no need to await
-}
 
 function checkLearnedCache(desc) {
   const learned = getLearnedFoods();
@@ -2243,138 +2225,183 @@ async function estimateFood() {
   const desc = document.getElementById('food-name').value.trim();
   if (!desc) { alert('Describe what you ate first.'); return; }
 
-  // Step 1: Try local DB first
-  const localResult = parseDescription(desc);
-  if (localResult.matched && localResult.confidence >= 0.65) {
-    localResult.source = 'local';
-    showEstimate(localResult);
-    return;
-  }
+  // Split into segments immediately
+  const segments = desc.toLowerCase()
+    .split(/[,+&\/]|(?:\band\b)|(?:\bwith\b)|(?:\bplus\b)/)
+    .map(s => s.trim())
+    .filter(Boolean);
 
-  // Step 1.5: Check learned cache
-  const learnedResult = checkLearnedCache(desc);
-  if (learnedResult) {
-    showEstimate(learnedResult);
-    return;
-  }
+  // If only one segment, treat whole string as one segment
+  if (!segments.length) segments.push(desc.toLowerCase());
 
-  // Step 2: No local match — show manual entry prompt with AI suggestion note
-  const d = getData();
-
-  // Show the box in "no match" state first
+  // Show loading state
   const box = document.getElementById('estimate-box');
   box.style.display = 'block';
-
-  // Show loading
   box.style.borderColor = 'var(--accent)';
   document.getElementById('estimate-breakdown').innerHTML =
-    '<span style="color:var(--muted)">🔍 Looking up nutrition via AI...</span>';
+    '<span style="color:var(--muted)">🔍 Resolving ' + segments.length + ' item' + (segments.length > 1 ? 's' : '') + '...</span>';
   ['est-cal','est-protein','est-carbs','est-fat'].forEach(id =>
     document.getElementById(id).textContent = '...');
-  document.getElementById('estimate-confidence').textContent = 'Looking up...';
+  document.getElementById('estimate-confidence').textContent = 'Working...';
   document.getElementById('estimate-confidence').style.cssText =
     'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(59,130,246,0.2);color:var(--accent)';
 
+  // Resolve each segment independently
+  const resolved = [];
+  const apiSegments = []; // segments that need API lookup
+
+  for (const seg of segments) {
+    // 1. Local DB
+    const localItem = matchSegment(seg);
+    if (localItem && localItem.conf >= 0.55) {
+      resolved.push({ ...localItem, source: 'local', seg });
+      continue;
+    }
+    // 2. Learned cache
+    const learned = getLearnedFoods();
+    const learnedItem = checkLearnedSegment(seg, learned);
+    if (learnedItem) {
+      resolved.push({ ...learnedItem, source: 'learned', seg });
+      continue;
+    }
+    // 3. Needs API
+    apiSegments.push(seg);
+    resolved.push(null); // placeholder
+  }
+
+  // Batch API lookup for all unknown segments in one call
+  if (apiSegments.length > 0) {
+    const apiResults = await lookupSegmentsViaAPI(apiSegments);
+    let apiIdx = 0;
+    for (let i = 0; i < resolved.length; i++) {
+      if (resolved[i] === null) {
+        const r = apiResults[apiIdx++];
+        if (r) {
+          learnFood(segments[i], r.cal, r.protein, r.carbs, r.fat);
+          resolved[i] = { ...r, source: 'api', seg: segments[i] };
+        } else {
+          resolved[i] = { label: segments[i], qty: 'unknown', cal: 0, protein: 0, carbs: 0, fat: 0, source: 'failed', seg: segments[i] };
+        }
+      }
+    }
+  }
+
+  // Total everything up
+  const totals = resolved.reduce((acc, r) => ({
+    cal:     acc.cal     + (r?.cal     || 0),
+    protein: acc.protein + (r?.protein || 0),
+    carbs:   acc.carbs   + (r?.carbs   || 0),
+    fat:     acc.fat     + (r?.fat     || 0),
+  }), { cal: 0, protein: 0, carbs: 0, fat: 0 });
+
+  const sources = [...new Set(resolved.map(r => r?.source).filter(Boolean))];
+  const hasAPI = sources.includes('api');
+  const hasFailed = resolved.some(r => r?.source === 'failed');
+  const allLocal = sources.every(s => s === 'local');
+
+  const overallSource = hasAPI ? 'hybrid' : allLocal ? 'local' : 'learned';
+  const overallConf = hasFailed ? 0.6 : hasAPI ? 0.88 : 0.9;
+
+  showEstimate({
+    cal:      Math.round(totals.cal),
+    protein:  Math.round(totals.protein),
+    carbs:    Math.round(totals.carbs),
+    fat:      Math.round(totals.fat),
+    breakdown: resolved.map(r => ({
+      label:   r?.label || r?.seg || '?',
+      qty:     r?.qty   || '?',
+      cal:     Math.round(r?.cal     || 0),
+      protein: Math.round(r?.protein || 0),
+      carbs:   Math.round(r?.carbs   || 0),
+      fat:     Math.round(r?.fat     || 0),
+      source:  r?.source || 'failed'
+    })),
+    confidence:  overallConf,
+    matched:     resolved.filter(r => r && r.source !== 'failed').length,
+    source:      overallSource,
+    hasUnknowns: hasFailed
+  });
+}
+
+// Look up multiple segments in a single API call — efficient and cheap
+async function lookupSegmentsViaAPI(segs) {
   try {
-    const prompt = `Nutrition lookup. Food: "${desc}"
+    const listStr = segs.map((s, i) => `${i + 1}. "${s}"`).join('\n');
+    const prompt = `Nutrition lookup for ${segs.length} food item(s). Return ONLY a JSON array, no other text:
 
-Respond with ONLY this JSON, no other words:
-{"cal":CALORIES,"protein":PROTEIN_G,"carbs":CARBS_G,"fat":FAT_G,"breakdown":"one line explanation"}
+${listStr}
 
-Use integers. Use USDA values. Account for quantity if specified.`;
+Format (one object per item, same order):
+[{"cal":0,"protein":0,"carbs":0,"fat":0,"label":"short name","qty":"serving size used"},...]
+
+Use USDA values. Integers only. Account for quantities mentioned in each item description.`;
 
     const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 200,
+        max_tokens: 400,
         messages: [{ role: 'user', content: prompt }]
       })
     });
 
-    // Capture full response text first so we can debug if needed
     const responseText = await response.text();
-
-    if (!response.ok) {
-      let errMsg = 'HTTP ' + response.status;
-      try { errMsg = JSON.parse(responseText)?.error?.message || errMsg; } catch(e) {}
-      throw new Error(errMsg);
-    }
+    if (!response.ok) throw new Error('HTTP ' + response.status);
 
     const data = JSON.parse(responseText);
     const raw = data.content?.[0]?.text || '';
 
-    // Very tolerant parsing — try multiple strategies
+    // Parse tolerantly
     let parsed = null;
-
-    // Strategy 1: direct parse
     try { parsed = JSON.parse(raw.trim()); } catch(e) {}
-
-    // Strategy 2: strip markdown fences
     if (!parsed) {
       try {
         const stripped = raw.replace(/```json|```/gi, '').trim();
         parsed = JSON.parse(stripped);
       } catch(e) {}
     }
-
-    // Strategy 3: extract first {...} block
     if (!parsed) {
-      try {
-        const match = raw.match(/\{[^{}]*\}/s);
-        if (match) parsed = JSON.parse(match[0]);
-      } catch(e) {}
+      const match = raw.match(/\[[\s\S]*\]/);
+      if (match) try { parsed = JSON.parse(match[0]); } catch(e) {}
     }
 
-    // Strategy 4: pull numbers out manually with regex
-    if (!parsed) {
-      const getNum = (label) => {
-        const m = raw.match(new RegExp('"?' + label + '"?\\s*:\\s*(\\d+)', 'i'));
-        return m ? parseInt(m[1]) : 0;
-      };
-      const cal = getNum('cal') || getNum('calories') || getNum('kcal');
-      if (cal > 0) {
-        parsed = {
-          cal,
-          protein: getNum('protein'),
-          carbs: getNum('carbs') || getNum('carbohydrates'),
-          fat: getNum('fat'),
-          breakdown: 'Extracted from AI response'
-        };
-      }
-    }
+    if (!Array.isArray(parsed)) return segs.map(() => null);
 
-    if (!parsed || !parsed.cal) {
-      throw new Error('Empty response from API. Raw: ' + (raw || 'nothing').slice(0, 150));
-    }
+    return parsed.map(p => p ? {
+      cal:     Math.round(p.cal     || 0),
+      protein: Math.round(p.protein || 0),
+      carbs:   Math.round(p.carbs   || 0),
+      fat:     Math.round(p.fat     || 0),
+      label:   p.label || '',
+      qty:     p.qty   || 'AI lookup',
+      conf:    0.88
+    } : null);
 
-    const cal     = Math.round(parsed.cal || 0);
-    const protein = Math.round(parsed.protein || 0);
-    const carbs   = Math.round(parsed.carbs || 0);
-    const fat     = Math.round(parsed.fat || 0);
+  } catch(err) {
+    console.error('Batch API error:', err);
+    return segs.map(() => null);
+  }
+}
 
-    learnFood(desc, cal, protein, carbs, fat);
-
-    showEstimate({
-      cal, protein, carbs, fat,
-      breakdown: [{ label: desc, qty: 'AI lookup', cal, protein, carbs, fat }],
-      apiBreakdown: (parsed.breakdown || '') + ' — saved to your learned database',
-      confidence: 0.92,
-      matched: 1,
-      source: 'api'
-    });
-
-  } catch (err) {
-    console.error('Food API error:', err);
-    // Check if it's a CORS error
-    const isCors = err.message.includes('Failed to fetch') || err.message.includes('NetworkError') || err.message.includes('CORS');
-    if (isCors) {
-      showNoMatch(desc, 'Network blocked the API call. Enter numbers manually — or use this app from claude.ai where API calls work directly.');
-    } else {
-      showNoMatch(desc, 'API error: ' + err.message + '. Enter the numbers manually below.');
+// Check learned cache for a single segment
+function checkLearnedSegment(seg, learned) {
+  const key = seg.trim();
+  if (learned[key]) {
+    const e = learned[key];
+    return { label: key, qty: 'learned', cal: e.cal, protein: e.protein,
+      carbs: e.carbs, fat: e.fat, conf: 0.9 };
+  }
+  // Partial word match
+  const words = key.split(/\s+/).filter(w => w.length > 2);
+  for (const [lKey, e] of Object.entries(learned)) {
+    const matchCount = words.filter(w => lKey.includes(w)).length;
+    if (words.length > 0 && matchCount === words.length) {
+      return { label: lKey, qty: 'learned (partial)', cal: e.cal, protein: e.protein,
+        carbs: e.carbs, fat: e.fat, conf: 0.78 };
     }
   }
+  return null;
 }
 
 function showNoMatch(desc, reason) {
@@ -2386,18 +2413,16 @@ function showNoMatch(desc, reason) {
   document.getElementById('estimate-confidence').textContent = 'No match';
   document.getElementById('estimate-confidence').style.cssText =
     'font-size:11px;padding:2px 8px;border-radius:100px;background:rgba(234,179,8,0.2);color:var(--yellow)';
-  document.getElementById('estimate-breakdown').innerHTML =
-    `⚠️ ${reason}`;
+  document.getElementById('estimate-breakdown').innerHTML = '⚠️ ' + reason;
 }
 
 function onFoodDescriptionInput() {
   const box = document.getElementById('estimate-box');
-  if (box.style.display !== 'none') {
-    box.style.display = 'none';
-  }
+  if (box.style.display !== 'none') box.style.display = 'none';
 }
 
 function parseDescription(desc) {
+  // Used only internally now for single-segment local matching
   const lower = desc.toLowerCase();
   const segments = lower.split(/[,+&\/]|and\s|\bwith\b|\bplus\b/).map(s => s.trim()).filter(Boolean);
 
@@ -2419,7 +2444,6 @@ function parseDescription(desc) {
     }
   });
 
-  // If nothing matched, try the whole string as one item
   if (!matchedCount) {
     const item = matchSegment(lower);
     if (item) {
@@ -2430,15 +2454,10 @@ function parseDescription(desc) {
     }
   }
 
-  const avgConf = matchedCount > 0 ? confidence / matchedCount : 0;
-
   return {
-    cal: Math.round(totalCal),
-    protein: Math.round(totalProtein),
-    carbs: Math.round(totalCarbs),
-    fat: Math.round(totalFat),
-    breakdown,
-    confidence: avgConf,
+    cal: Math.round(totalCal), protein: Math.round(totalProtein),
+    carbs: Math.round(totalCarbs), fat: Math.round(totalFat),
+    breakdown, confidence: matchedCount > 0 ? confidence / matchedCount : 0,
     matched: matchedCount || (breakdown.length ? 1 : 0)
   };
 }
@@ -2557,13 +2576,15 @@ function showEstimate(result) {
   // Source label
   const sourceLabel = result.source === 'api'
     ? '🤖 AI lookup'
-    : result.source === 'learned'
-      ? '💾 From learned database'
-      : result.source === 'local_fallback'
-        ? '📦 Local DB (fallback)'
-        : conf >= 0.85 ? 'High confidence' : conf >= 0.65 ? 'Medium confidence' : 'Low confidence — verify';
+    : result.source === 'hybrid'
+      ? '🔀 Mixed — local DB + AI'
+      : result.source === 'learned'
+        ? '💾 From learned database'
+        : result.source === 'local_fallback'
+          ? '📦 Local DB (fallback)'
+          : conf >= 0.85 ? 'High confidence' : conf >= 0.65 ? 'Medium confidence' : 'Low confidence — verify';
 
-  const sourceBg = (result.source === 'api' || result.source === 'learned')
+  const sourceBg = (result.source === 'api' || result.source === 'learned' || result.source === 'hybrid')
     ? 'background:rgba(34,197,94,0.2);color:var(--green)'
     : conf >= 0.85
       ? 'background:rgba(34,197,94,0.2);color:var(--green)'
@@ -2579,9 +2600,16 @@ function showEstimate(result) {
   if (result.source === 'api' && result.apiBreakdown) {
     bkEl.innerHTML = `<span style="color:var(--muted)">${result.apiBreakdown}</span>`;
   } else {
-    bkEl.innerHTML = result.breakdown.map(b =>
-      `<span style="color:var(--text)">${b.label}</span> <span style="color:var(--muted)">(${b.qty})</span> — ${b.cal} cal, ${b.protein}g P, ${b.carbs}g C, ${b.fat}g F<br>`
-    ).join('');
+    const srcIcon = { local: '📦', api: '🤖', learned: '💾', failed: '⚠️', hybrid: '🔀' };
+    bkEl.innerHTML = result.breakdown.map(b => {
+      const icon = srcIcon[b.source] || '📦';
+      const failed = b.source === 'failed';
+      return `<span style="color:${failed ? 'var(--red)' : 'var(--text)'}">${icon} ${b.label}</span> <span style="color:var(--muted)">(${b.qty})</span>${failed ? ' — not found, adjust manually' : ` — ${b.cal} cal, ${b.protein}g P, ${b.carbs}g C, ${b.fat}g F`}<br>`;
+    }).join('');
+
+    if (result.hasUnknowns) {
+      bkEl.innerHTML += '<span style="color:var(--yellow)">⚠️ Some items not found — adjust numbers manually</span>';
+    }
   }
 
   box.style.borderColor = result.source === 'api' ? 'var(--green)' : 'var(--accent)';
@@ -2959,20 +2987,14 @@ async function saveApiKey() {
   }
   const d = getData();
   d.apiKey = key;
-  _cache = d; // update cache immediately
-  try {
-    await window.storage.set(STORAGE_KEY, d);
-  } catch(e) { console.warn('Key save failed:', e); }
+  saveData(d);
   setupCoach();
 }
 
 async function changeApiKey() {
   const d = getData();
   d.apiKey = '';
-  _cache = d;
-  try {
-    await window.storage.set(STORAGE_KEY, d);
-  } catch(e) { console.warn('Key clear failed:', e); }
+  saveData(d);
   setupCoach();
 }
 
