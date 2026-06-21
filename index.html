@@ -790,7 +790,20 @@
   <div class="panel active" id="panel-dashboard">
     <div id="dash-alert"></div>
 
-    <!-- DAILY CHECKLIST -->
+    <!-- MORNING BRIEF -->
+    <div id="morning-brief-card" style="display:none" class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <div class="card-title" style="margin-bottom:0">☀️ Morning Brief</div>
+        <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="morning-brief-date"></span>
+      </div>
+      <div id="morning-brief-content">
+        <div style="display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px">
+          <div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+          Analyzing yesterday...
+        </div>
+      </div>
+    </div>
+
     <div class="card" id="checklist-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:0">Today's Non-Negotiables</div>
@@ -1262,7 +1275,7 @@ function init() {
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
 
-  // Purge garbage learned cache entries (zero cal, short keys that are just numbers)
+  // Purge garbage learned cache entries
   const learned = getLearnedFoods();
   let dirty = false;
   for (const key of Object.keys(learned)) {
@@ -1275,6 +1288,9 @@ function init() {
 
   renderAll();
   setupCoach();
+
+  // Fire morning brief async — non-blocking
+  checkMorningBrief();
 }
 
 
@@ -1286,6 +1302,118 @@ function renderAll() {
   renderFoodHistory();
   renderWeightPanel();
 }
+
+// ═══════════════════════════════════════════
+// MORNING BRIEF
+// ═══════════════════════════════════════════
+
+async function checkMorningBrief() {
+  const d = getData();
+  const today = new Date().toISOString().split('T')[0];
+  const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+
+  // Only show in the morning — before 11am
+  const hour = new Date().getHours();
+  if (hour >= 11) return;
+
+  // Only show if yesterday has food logs
+  const yesterdayFood = d.foodLogs.filter(f => f.date === yesterday);
+  if (yesterdayFood.length < 2) return;
+
+  // Check if we already generated a brief today — don't re-call API
+  const cacheKey = 'mitchfit_brief_' + today;
+  const cached = lsGet(cacheKey);
+  if (cached && cached.brief) {
+    showMorningBrief(cached.brief, yesterday);
+    return;
+  }
+
+  // Show card with loading state
+  document.getElementById('morning-brief-card').style.display = 'block';
+  document.getElementById('morning-brief-date').textContent = 'Yesterday ' + yesterday;
+
+  // Build yesterday's summary
+  const totals = yesterdayFood.reduce((acc, f) => ({
+    cal:     acc.cal     + (f.calories || 0),
+    protein: acc.protein + (f.protein  || 0),
+    carbs:   acc.carbs   + (f.carbs    || 0),
+    fat:     acc.fat     + (f.fat      || 0),
+  }), { cal: 0, protein: 0, carbs: 0, fat: 0 });
+
+  const yesterdayWorkout = d.workoutLogs.find(w => w.date === yesterday);
+  const weightLogs = [...d.weightLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
+  const currWeight = weightLogs[0]?.weight || 273;
+  const totalLost = 273 - currWeight;
+
+  const mealLog = yesterdayFood.map(f =>
+    `${f.meal}: ${f.name} (${f.calories}cal, ${f.protein}g protein)`
+  ).join('\n');
+
+  const prompt = `You are a no-nonsense nutrition and fitness coach. Analyze yesterday's food log for Mitch and give him a specific morning brief for today.
+
+MITCH'S STATS:
+- Current weight: ${currWeight} lbs (lost ${totalLost.toFixed(1)} lbs so far, started at 273)
+- Daily calorie target: 2,300 cal
+- Daily protein target: 185g
+- Goal: lose weight, 3x/week workouts
+
+YESTERDAY (${yesterday}):
+Calories: ${totals.cal} (target: 2300, ${totals.cal > 2300 ? '+' + (totals.cal-2300) + ' OVER' : '-' + (2300-totals.cal) + ' under'})
+Protein: ${totals.protein}g (target: 185g, ${totals.protein >= 185 ? 'HIT' : (185-totals.protein) + 'g SHORT'})
+Carbs: ${totals.carbs}g | Fat: ${totals.fat}g
+${yesterdayWorkout ? 'Workout: ' + yesterdayWorkout.type : 'No workout logged'}
+
+MEAL BREAKDOWN:
+${mealLog}
+
+Write a morning brief in 3-4 sentences maximum. Be direct and specific — reference actual foods he ate and actual numbers. Identify the single biggest problem from yesterday and give him one specific behavioral target for today. Do not give generic advice. Do not be encouraging unless the data warrants it. If he was significantly over calories or way under protein, say so plainly.`;
+
+  try {
+    const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 200,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) throw new Error('HTTP ' + response.status);
+    const data = await response.json();
+    const brief = data.content?.[0]?.text || '';
+
+    if (brief) {
+      // Cache so we don't re-call today
+      lsSet(cacheKey, { brief, generatedAt: Date.now() });
+      showMorningBrief(brief, yesterday);
+    }
+  } catch(e) {
+    console.warn('Morning brief failed:', e.message);
+    document.getElementById('morning-brief-card').style.display = 'none';
+  }
+}
+
+function showMorningBrief(brief, date) {
+  const card = document.getElementById('morning-brief-card');
+  const content = document.getElementById('morning-brief-content');
+  const dateEl = document.getElementById('morning-brief-date');
+
+  card.style.display = 'block';
+  card.style.borderColor = 'var(--accent)';
+  dateEl.textContent = 'Based on ' + date;
+  content.innerHTML = `
+    <div style="font-size:14px;line-height:1.7;color:var(--text)">${brief.replace(/\n/g,'<br>')}</div>
+    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
+      <button onclick="dismissMorningBrief()" class="btn btn-outline btn-sm">Got it</button>
+    </div>
+  `;
+}
+
+function dismissMorningBrief() {
+  document.getElementById('morning-brief-card').style.display = 'none';
+}
+
 
 // ═══════════════════════════════════════════
 // DAILY CHECKLIST
