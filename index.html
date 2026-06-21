@@ -2099,8 +2099,8 @@ const FOOD_DB = {
   // Steakhouse avg portion is 10-12oz, home cook is 8oz
   'sirloin':            [52, 8.0, 0, 2.3, 10,  ['sirloin','steak','beef steak','strip steak','ribeye','filet']],
   // Salmon fillet from store avg 6oz, people eat the whole fillet
-  'salmon':             [58, 6.4, 0, 3.5, 6,   ['salmon','atlantic salmon','sockeye','fish']],
-  'tilapia':            [37, 7.7, 0, 0.8, 6,   ['tilapia','white fish','cod','catfish']],
+  'salmon':             [58, 6.4, 0, 3.5, 6,   ['salmon','atlantic salmon','sockeye','salmon fillet']],
+  'tilapia':            [37, 7.7, 0, 0.8, 6,   ['tilapia','white fish','cod','catfish','tilapia fillet']],
   // Shrimp — avg appetizer/meal portion is 4-6oz
   'shrimp':             [28, 5.7, 0, 0.4, 5,   ['shrimp','prawn']],
   // Canned tuna — standard can is 5oz drained, people use the whole can
@@ -2121,7 +2121,7 @@ const FOOD_DB = {
   // Almonds — avg handful = 1oz (23 almonds). People rarely eat just one handful though — use 1.5oz
   'almonds':            [164, 6.0, 6.0, 14, 1.5, ['almonds','almond']],
   // Peanut butter — avg American uses 2 tbsp = 1oz on sandwich, often more
-  'peanut butter':      [166, 7.0, 6.0, 14, 2,   ['peanut butter','pb','peanut butter spoon']],
+  'peanut butter':      [166, 7.0, 6.0, 14, 2,   ['peanut butter','pb','peanut butter spoon','natural peanut butter']],
   // ── GRAINS / CARBS ──
   // Oatmeal — avg bowl is 1 cup dry = 3oz dry / 8oz cooked. Use cooked weight.
   'oatmeal':            [17, 0.75, 3.0, 0.35, 8,  ['oatmeal','oats','rolled oats','instant oats','oat']],
@@ -2130,7 +2130,7 @@ const FOOD_DB = {
   'white rice':         [36, 0.65, 7.9, 0.1, 10,  ['white rice','rice','jasmine rice','cooked rice']],
   'quinoa':             [34, 1.5, 5.9, 0.6, 8,   ['quinoa']],
   // Sweet potato — avg medium store sweet potato = 5-6oz baked
-  'sweet potato':       [24, 0.5, 5.5, 0.05, 6,  ['sweet potato','yam']],
+  'sweet potato':       [24, 0.5, 5.5, 0.05, 6,  ['sweet potato','yam','sweet potato baked']],
   // Baked potato — avg restaurant potato is 10oz, avg home is 7-8oz
   'white potato':       [22, 0.5, 5.0, 0.03, 8,  ['potato','baked potato','russet potato','white potato']],
   // Bread — 1 slice is realistic for toast, but sandwiches use 2. Default to 1 slice.
@@ -2167,7 +2167,7 @@ const FOOD_DB = {
   // Avocado — half an avocado = ~3oz flesh. That's a realistic serving on toast or in a bowl.
   'avocado':            [45, 0.5, 2.4, 4.1, 3,   ['avocado','avocado half']],
   // Olive oil — avg cooking drizzle/tablespoon = 0.5oz
-  'olive oil':          [250, 0, 0, 28, 0.5,      ['olive oil','oil']],
+  'olive oil':          [250, 0, 0, 28, 0.5,      ['olive oil','extra virgin olive oil','evoo']],
   // ── FAST FOOD — already per-item totals, realistic ──
   'big mac':            [550, 25, 46, 30,  1,     ['big mac','bigmac']],
   'mcchicken':          [400, 14, 42, 17,  1,     ['mcchicken','mcdouble','mcdonald']],
@@ -2183,15 +2183,15 @@ const FOOD_DB = {
   // Bagel — avg store/deli bagel is 4oz, NOT the 1oz FDA serving. Big difference.
   'bagel':              [75, 2.25, 14.5, 0.5, 4,  ['bagel','plain bagel','everything bagel']],
   // Granola bar — standard bar = 1.4oz. One bar is a realistic snack.
-  'granola bar':        [138, 2.8, 19.5, 5, 1.4,  ['granola bar','nature valley','kind bar','bar']],
+  'granola bar':        [138, 2.8, 19.5, 5, 1.4,  ['granola bar','nature valley','kind bar']],
   // Coffee — 12oz standard drip coffee, essentially zero calories black
   'coffee black':       [0.25, 0.04, 0, 0, 12,    ['coffee','black coffee']],
   // Latte — 12oz medium is standard order
   'latte':              [10, 0.5, 1.0, 0.42, 12,  ['latte','coffee latte','starbucks latte']],
   // OJ — 8oz glass is standard pour
-  'orange juice':       [14, 0.25, 3.25, 0.06, 8, ['orange juice','oj','juice']],
+  'orange juice':       [14, 0.25, 3.25, 0.06, 8, ['orange juice','oj','fresh squeezed oj']],
   // Soda — 12oz can is the standard unit Americans drink
-  'soda':               [11.7, 0, 3.25, 0, 12,    ['soda','coke','pepsi','sprite','pop']],
+  'soda':               [11.7, 0, 3.25, 0, 12,    ['soda','coke','pepsi','sprite','pop','diet soda']],
   // Beer — 12oz standard bottle/can
   'beer':               [12.75, 0.13, 1.1, 0, 12, ['beer','light beer']],
 };
@@ -2338,9 +2338,26 @@ async function estimateFood() {
     resolved.push(null); // placeholder
   }
 
-  // Batch API lookup for all unknown segments in one call
+  // Batch API lookup — check if any segments need clarification first
   if (apiSegments.length > 0) {
-    const apiResults = await lookupSegmentsViaAPI(apiSegments);
+    // Check for complex prepared foods that need base clarification
+    const complexSegs = apiSegments.map((seg, i) => ({
+      seg, idx: i, clarification: needsClarification(seg)
+    })).filter(s => s.clarification);
+
+    // If any segment needs clarification, show modal and wait for answer
+    let clarifications = {};
+    if (complexSegs.length > 0) {
+      clarifications = await showClarificationModal(complexSegs);
+    }
+
+    // Build context-enriched segments for API
+    const enrichedSegs = apiSegments.map((seg, i) => {
+      const c = clarifications[i];
+      return c ? `${seg} (${c.context})` : seg;
+    });
+
+    const apiResults = await lookupSegmentsViaAPI(enrichedSegs);
     let apiIdx = 0;
     for (let i = 0; i < resolved.length; i++) {
       if (resolved[i] === null) {
@@ -2390,6 +2407,144 @@ async function estimateFood() {
     source:      overallSource,
     hasUnknowns: hasFailed
   });
+}
+
+// Complex food keyword detection + base options
+// Each entry: trigger keywords, question, two options with context strings for the API
+const COMPLEX_FOODS = [
+  {
+    triggers: ['dip','spread','dipping'],
+    question: 'What kind of base?',
+    options: [
+      { label: 'Cream cheese based', context: 'cream cheese based dip, roughly 70% cream cheese to 30% mix-ins, standard ratio' },
+      { label: 'Sour cream based',   context: 'sour cream based dip, roughly 70% sour cream to 30% mix-ins, standard ratio' },
+      { label: 'Mayo based',         context: 'mayonnaise based dip, roughly 65% mayo to 35% mix-ins, standard ratio' },
+    ]
+  },
+  {
+    triggers: ['soup','chowder','bisque','stew'],
+    question: 'What kind of base?',
+    options: [
+      { label: 'Broth based',        context: 'broth based soup, lean, low fat' },
+      { label: 'Cream based',        context: 'cream or milk based soup, higher fat, richer' },
+    ]
+  },
+  {
+    triggers: ['sauce','gravy'],
+    question: 'What kind of sauce?',
+    options: [
+      { label: 'Tomato / marinara',  context: 'tomato based sauce, low fat, standard Italian ratio' },
+      { label: 'Cream / alfredo',    context: 'cream butter based sauce, high fat, standard alfredo ratio' },
+    ]
+  },
+  {
+    triggers: ['casserole','bake','gratin'],
+    question: 'What style?',
+    options: [
+      { label: 'Lighter / veggie',   context: 'lighter casserole, vegetable forward, minimal cream or cheese' },
+      { label: 'Creamy / cheesy',    context: 'rich casserole with cream of mushroom or cheese base, standard American recipe ratio' },
+    ]
+  },
+  {
+    triggers: ['salad dressing','dressing','vinaigrette'],
+    question: 'What type of dressing?',
+    options: [
+      { label: 'Oil based',          context: 'oil and vinegar vinaigrette, standard 3:1 oil to acid ratio' },
+      { label: 'Creamy',             context: 'creamy dressing like ranch or caesar, mayo or buttermilk base' },
+    ]
+  },
+  {
+    triggers: ['smoothie','shake'],
+    question: 'What base?',
+    options: [
+      { label: 'Milk / yogurt',      context: 'dairy based smoothie with milk or greek yogurt, moderate calories' },
+      { label: 'Juice / water',      context: 'juice or water based smoothie, lower calorie, no dairy' },
+    ]
+  },
+];
+
+function needsClarification(seg) {
+  const lower = seg.toLowerCase();
+  for (const group of COMPLEX_FOODS) {
+    if (group.triggers.some(t => {
+      const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      return new RegExp('(?<![a-z])' + escaped + '(?![a-z])', 'i').test(lower);
+    })) {
+      return group;
+    }
+  }
+  return null;
+}
+
+// Returns a promise that resolves with { segIdx: { label, context } } map
+function showClarificationModal(complexSegs) {
+  return new Promise(resolve => {
+    const answers = {};
+    let currentIdx = 0;
+
+    function showNext() {
+      if (currentIdx >= complexSegs.length) {
+        removeModal();
+        resolve(answers);
+        return;
+      }
+      const { seg, idx, clarification } = complexSegs[currentIdx];
+      const foodName = seg.replace(/^\d+(\.\d+)?\s*(cup|oz|tbsp|tsp|g|lb)?\s*/i, '').trim();
+
+      const modal = document.createElement('div');
+      modal.id = 'clarify-modal';
+      modal.style.cssText = `
+        position:fixed;top:0;left:0;right:0;bottom:0;
+        background:rgba(0,0,0,0.7);z-index:9999;
+        display:flex;align-items:center;justify-content:center;padding:20px;
+      `;
+      modal.innerHTML = `
+        <div style="background:var(--surface);border:1px solid var(--accent);border-radius:14px;padding:24px;max-width:380px;width:100%">
+          <div style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">Clarify for better accuracy</div>
+          <div style="font-size:16px;font-weight:600;margin-bottom:4px">${foodName}</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px">${clarification.question}</div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            ${clarification.options.map((opt, oi) => `
+              <button onclick="pickClarification(${idx},${oi})"
+                style="background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                  border-radius:8px;padding:12px 14px;font-size:14px;font-weight:500;
+                  cursor:pointer;text-align:left;font-family:var(--font);transition:border-color 0.2s"
+                onmouseover="this.style.borderColor='var(--accent)'"
+                onmouseout="this.style.borderColor='var(--border)'">
+                ${opt.label}
+              </button>
+            `).join('')}
+            <button onclick="pickClarification(${idx},-1)"
+              style="background:transparent;border:none;color:var(--muted);font-size:13px;
+                cursor:pointer;padding:8px;font-family:var(--font)">
+              Skip — just estimate it
+            </button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      window._clarifyResolve = (optionIdx) => {
+        if (optionIdx >= 0) {
+          answers[idx] = clarification.options[optionIdx];
+        }
+        currentIdx++;
+        removeModal();
+        showNext();
+      };
+    }
+
+    function removeModal() {
+      const m = document.getElementById('clarify-modal');
+      if (m) m.remove();
+    }
+
+    showNext();
+  });
+}
+
+function pickClarification(segIdx, optionIdx) {
+  if (window._clarifyResolve) window._clarifyResolve(optionIdx);
 }
 
 // Look up multiple segments in a single API call — efficient and cheap
