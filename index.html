@@ -2086,115 +2086,208 @@ function addExerciseRow() {
 // Database: [cal_per_oz, protein_per_oz, carbs_per_oz, fat_per_oz, default_oz, aliases]
 // default_oz = what the average American actually eats in one sitting, not FDA serving size
 const FOOD_DB = {
-  // ── PROTEINS ──
-  // Avg store chicken breast is 8-10oz raw, loses ~25% to cooking = ~6-7oz cooked. Americans typically eat the whole breast.
-  'chicken breast':     [47, 8.8, 0, 1.0, 7,   ['chicken','grilled chicken','baked chicken','chicken breast','rotisserie chicken breast']],
-  // Thighs sold 2-pack, avg thigh = 4oz cooked. People eat 2.
-  'chicken thigh':      [63, 7.0, 0, 3.8, 8,   ['chicken thigh','dark chicken','chicken leg']],
-  // Ground turkey — avg home cook uses 5-6oz per person in a meal
-  'ground turkey':      [55, 7.8, 0, 2.8, 6,   ['ground turkey','turkey burger','turkey meat']],
-  // Ground beef — quarter lb patty is 4oz raw/3oz cooked but Americans avg 6oz in meals
-  'ground beef 80':     [77, 6.8, 0, 5.8, 6,   ['ground beef','hamburger','burger','beef 80/20','80/20 beef']],
-  'ground beef 93':     [52, 8.0, 0, 2.2, 6,   ['lean ground beef','93% beef','93/7 beef','lean beef']],
-  // Steakhouse avg portion is 10-12oz, home cook is 8oz
-  'sirloin':            [52, 8.0, 0, 2.3, 10,  ['sirloin','steak','beef steak','strip steak','ribeye','filet']],
-  // Salmon fillet from store avg 6oz, people eat the whole fillet
-  'salmon':             [58, 6.4, 0, 3.5, 6,   ['salmon','atlantic salmon','sockeye','salmon fillet']],
-  'tilapia':            [37, 7.7, 0, 0.8, 6,   ['tilapia','white fish','cod','catfish','tilapia fillet']],
-  // Shrimp — avg appetizer/meal portion is 4-6oz
-  'shrimp':             [28, 5.7, 0, 0.4, 5,   ['shrimp','prawn']],
-  // Canned tuna — standard can is 5oz drained, people use the whole can
-  'tuna can':           [30, 6.7, 0, 0.3, 5,   ['canned tuna','tuna','tuna can']],
-  'pork tenderloin':    [47, 8.2, 0, 1.4, 6,   ['pork','pork tenderloin','pork loin']],
-  // Eggs: default_oz = 1 large egg = 1.75oz. Count multiplies correctly: 2 eggs = 2 × 1.75 = 3.5oz = ~150 cal
-  'eggs':               [40, 3.4, 0.2, 2.8, 1.75, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg']],
-  'egg whites':         [15, 3.6, 0.2, 0.05, 1.1,  ['egg white','egg whites','liquid egg']],
-  // Greek yogurt — single serve cup is 5.3oz (Chobani standard), people eat one cup
-  'greek yogurt':       [17, 2.0, 1.5, 0.3, 5.3, ['greek yogurt','plain greek yogurt','chobani','oikos','fage']],
-  // Cottage cheese — half cup = 4oz is realistic single serving
-  'cottage cheese':     [25, 3.5, 0.7, 0.5, 4,   ['cottage cheese']],
-  // Protein shake — one scoop + liquid = ~130 cal total, stored as per-serving with default 1
-  'protein shake':      [130, 25, 5, 2.5, 1,    ['protein shake','protein powder','whey','casein','protein drink','muscle milk']],
-  // Deli turkey — avg sandwich uses 4-5 slices = ~3oz
-  'deli turkey':        [31, 5.5, 0.5, 0.6, 3,   ['deli turkey','turkey slice','turkey cold cut']],
-  'string cheese':      [80, 6.0, 0.5, 5.5, 1,   ['string cheese','mozzarella stick']],
-  // Almonds — avg handful = 1oz (23 almonds). People rarely eat just one handful though — use 1.5oz
-  'almonds':            [164, 6.0, 6.0, 14, 1.5, ['almonds','almond']],
-  // Peanut butter — avg American uses 2 tbsp = 1oz on sandwich, often more
-  'peanut butter':      [166, 7.0, 6.0, 14, 2,   ['peanut butter','pb','peanut butter spoon','natural peanut butter']],
-  // ── GRAINS / CARBS ──
-  // Oatmeal — avg bowl is 1 cup dry = 3oz dry / 8oz cooked. Use cooked weight.
-  'oatmeal':            [17, 0.75, 3.0, 0.35, 8,  ['oatmeal','oats','rolled oats','instant oats','oat']],
-  // Rice — avg restaurant/home portion is 1.5-2 cups cooked = 9-12oz. Americans eat more rice than they think.
-  'brown rice':         [32, 0.65, 6.8, 0.3, 10,  ['brown rice','brown rice cup']],
-  'white rice':         [36, 0.65, 7.9, 0.1, 10,  ['white rice','rice','jasmine rice','cooked rice']],
-  'quinoa':             [34, 1.5, 5.9, 0.6, 8,   ['quinoa']],
-  // Sweet potato — avg medium store sweet potato = 5-6oz baked
-  'sweet potato':       [24, 0.5, 5.5, 0.05, 6,  ['sweet potato','yam','sweet potato baked']],
-  // Baked potato — avg restaurant potato is 10oz, avg home is 7-8oz
-  'white potato':       [22, 0.5, 5.0, 0.03, 8,  ['potato','baked potato','russet potato','white potato']],
-  // Bread — 1 slice is realistic for toast, but sandwiches use 2. Default to 1 slice.
-  'whole wheat bread':  [69, 2.8, 11.5, 1.0, 1,  ['whole wheat bread','wheat bread','whole grain bread','bread slice']],
-  'white bread':        [75, 2.5, 14.0, 1.0, 1,  ['white bread','bread']],
-  // Tortilla — large 10-inch flour tortilla = 1.8oz. That's what most wraps use.
-  'whole wheat tortilla':[130, 4.0, 22.0, 3.5, 1, ['whole wheat tortilla','wheat tortilla','flour tortilla','tortilla']],
-  // Pasta — avg American home portion is 2 cups cooked = 10oz. Way more than label.
-  'pasta':              [40, 1.4, 8.0, 0.2, 10,  ['pasta','spaghetti','penne','noodles','cooked pasta']],
-  // Beans — avg side/bowl portion is 1 cup = 6oz
-  'black beans':        [27, 1.8, 4.8, 0.1, 6,   ['black beans','beans','kidney beans','pinto beans']],
-  // Banana — avg medium banana = 4oz peeled
-  'banana':             [25, 0.3, 6.4, 0.1, 4,   ['banana']],
-  // Apple — avg medium apple = 6oz
-  'apple':              [15, 0.1, 3.9, 0.05, 6,  ['apple']],
-  // ── VEGETABLES ──
-  // Broccoli — avg side portion is 1.5-2 cups = 5-6oz
-  'broccoli':           [10, 0.8, 1.8, 0.1, 6,   ['broccoli','broccoli florets']],
-  // Spinach — raw spinach is airy, 2 cups = 2oz. Cooked collapses to 1 cup = 6oz. Default raw side.
-  'spinach':            [6,  0.8, 0.9, 0.1, 3,   ['spinach','baby spinach']],
-  // Salad — avg side salad portion = 3oz greens
-  'romaine':            [5,  0.4, 0.9, 0.1, 3,   ['romaine','lettuce','mixed greens','salad greens']],
-  'asparagus':          [6,  0.6, 1.1, 0.05, 5,  ['asparagus']],
-  'zucchini':           [5,  0.4, 1.0, 0.1, 5,   ['zucchini','squash']],
-  // Peppers — half a bell pepper as a side = ~3oz
-  'peppers':            [9,  0.3, 2.0, 0.1, 3,   ['peppers','bell pepper','pepper']],
-  'onion':              [11, 0.3, 2.6, 0.04, 2,  ['onion','onions']],
-  'mixed vegetables':   [8,  0.5, 1.5, 0.1, 6,   ['mixed vegetables','veggies','vegetables']],
-  // ── DAIRY / FATS ──
-  // Milk — avg glass = 8oz, but Americans also use it in cereal (4oz) or coffee. Default 8oz glass.
-  'whole milk':         [18, 1.0, 1.4, 1.0, 8,   ['milk','whole milk','2% milk','dairy milk']],
-  // Cheese — avg slice on sandwich = 0.75oz. People add 1-2 slices. Default 1oz (1.5 slices).
-  'cheddar cheese':     [114, 7.0, 0.4, 9.4, 1,  ['cheddar','cheddar cheese','cheese','shredded cheese']],
-  // Avocado — half an avocado = ~3oz flesh. That's a realistic serving on toast or in a bowl.
-  'avocado':            [45, 0.5, 2.4, 4.1, 3,   ['avocado','avocado half']],
-  // Olive oil — avg cooking drizzle/tablespoon = 0.5oz
-  'olive oil':          [250, 0, 0, 28, 0.5,      ['olive oil','extra virgin olive oil','evoo']],
-  // ── FAST FOOD — already per-item totals, realistic ──
-  'big mac':            [550, 25, 46, 30,  1,     ['big mac','bigmac']],
-  'mcchicken':          [400, 14, 42, 17,  1,     ['mcchicken','mcdouble','mcdonald']],
-  'chick fil a sandwich':[440, 28, 40, 19, 1,     ['chick fil a','chickfila','chick-fil-a sandwich']],
-  // Chipotle portions are notoriously large — their own data shows burritos avg 1050+ cal
-  'chipotle burrito':   [1050, 52, 103, 47, 1,   ['chipotle burrito','chipotle']],
-  'chipotle bowl':      [750, 45, 75, 28,  1,     ['chipotle bowl','chipotle rice bowl']],
-  'subway 6in turkey':  [280, 18, 43, 4.5, 1,    ['subway turkey','6 inch turkey','subway sandwich']],
-  // Pizza — NY style slice avg 285 cal, but most Americans eat 2-3 slices. Default 1 slice, count handles multiples.
-  'pizza slice':        [285, 12, 36, 10,  1,     ['pizza','pizza slice','pepperoni pizza']],
-  'caesar salad':       [480, 10, 20, 40,  1,     ['caesar salad','restaurant caesar']],
-  // ── BREAKFAST / MISC ──
-  // Bagel — avg store/deli bagel is 4oz, NOT the 1oz FDA serving. Big difference.
-  'bagel':              [75, 2.25, 14.5, 0.5, 4,  ['bagel','plain bagel','everything bagel']],
-  // Granola bar — standard bar = 1.4oz. One bar is a realistic snack.
-  'granola bar':        [138, 2.8, 19.5, 5, 1.4,  ['granola bar','nature valley','kind bar']],
-  // Coffee — 12oz standard drip coffee, essentially zero calories black
-  'coffee black':       [0.25, 0.04, 0, 0, 12,    ['coffee','black coffee']],
-  // Latte — 12oz medium is standard order
-  'latte':              [10, 0.5, 1.0, 0.42, 12,  ['latte','coffee latte','starbucks latte']],
-  // OJ — 8oz glass is standard pour
-  'orange juice':       [14, 0.25, 3.25, 0.06, 8, ['orange juice','oj','fresh squeezed oj']],
-  // Soda — 12oz can is the standard unit Americans drink
-  'soda':               [11.7, 0, 3.25, 0, 12,    ['soda','coke','pepsi','sprite','pop','diet soda']],
-  // Beer — 12oz standard bottle/can
-  'beer':               [12.75, 0.13, 1.1, 0, 12, ['beer','light beer']],
+  // ═══ BEEF ═══
+  // Cal/oz from USDA cooked values. Defaults = realistic American restaurant/home portions.
+  'filet mignon':       [40, 8.5, 0, 1.5, 8,   ['filet mignon','filet','beef tenderloin','tenderloin steak']],
+  'sirloin steak':      [52, 8.0, 0, 2.3, 10,  ['sirloin','sirloin steak','top sirloin','bottom sirloin']],
+  'ribeye steak':       [76, 7.2, 0, 5.5, 10,  ['ribeye','rib eye','ribeye steak','rib-eye','prime rib']],
+  'skirt steak':        [65, 7.8, 0, 4.2, 8,   ['skirt steak','skirt','fajita steak','flank steak','flank']],
+  'ny strip steak':     [58, 7.9, 0, 3.5, 10,  ['new york strip','ny strip','strip steak','kansas city strip']],
+  'ground beef 80':     [77, 6.8, 0, 5.8, 6,   ['ground beef','hamburger','burger','beef 80/20','80/20 beef','beef patty']],
+  'ground beef 93':     [52, 8.0, 0, 2.2, 6,   ['lean ground beef','93% beef','93/7 beef','lean beef','extra lean beef']],
+  'brisket':            [68, 7.5, 0, 4.5, 8,   ['brisket','beef brisket','smoked brisket']],
+  'short rib':          [85, 6.8, 0, 6.8, 6,   ['short rib','short ribs','beef short rib']],
+  // ═══ POULTRY ═══
+  'chicken breast':     [47, 8.8, 0, 1.0, 7,   ['chicken breast','chicken','grilled chicken','baked chicken','rotisserie chicken breast','boneless chicken','chicken cutlet']],
+  'chicken thigh':      [63, 7.0, 0, 3.8, 8,   ['chicken thigh','dark chicken','chicken thighs','boneless thigh']],
+  'chicken wing':       [68, 6.8, 0, 4.8, 3,   ['chicken wing','wings','buffalo wing','chicken wings']],
+  'chicken leg':        [58, 7.2, 0, 3.2, 4,   ['chicken leg','drumstick','chicken drumstick']],
+  'rotisserie chicken': [55, 7.5, 0, 2.8, 6,   ['rotisserie chicken','store bought chicken','costco chicken']],
+  'ground turkey':      [55, 7.8, 0, 2.8, 6,   ['ground turkey','turkey burger','turkey meat','lean turkey']],
+  'turkey breast':      [38, 8.5, 0, 0.5, 6,   ['turkey breast','sliced turkey breast','roasted turkey breast']],
+  'deli turkey':        [31, 5.5, 0.5, 0.6, 3, ['deli turkey','turkey slice','turkey cold cut','lunch meat turkey']],
+  // ═══ PORK ═══
+  'pork tenderloin':    [47, 8.2, 0, 1.4, 6,   ['pork tenderloin','pork loin','pork loin roast']],
+  'pork chop':          [60, 7.8, 0, 3.2, 8,   ['pork chop','pork chops','bone in pork chop','boneless pork chop']],
+  'bacon':              [150,3.5, 0.1,14.5,1,  ['bacon','crispy bacon','turkey bacon']],
+  'sausage':            [100,3.8, 0.5, 9.0, 1, ['sausage','pork sausage','breakfast sausage','italian sausage','sausage link']],
+  'ham':                [47, 6.0, 1.0, 2.2, 3, ['ham','deli ham','sliced ham','honey ham']],
+  'pulled pork':        [62, 7.0, 0.5, 3.5, 6, ['pulled pork','bbq pork','smoked pork']],
+  'pork ribs':          [80, 6.5, 0, 6.0, 6,   ['pork ribs','baby back ribs','spare ribs','ribs']],
+  // ═══ SEAFOOD ═══
+  'salmon':             [58, 6.4, 0, 3.5, 6,   ['salmon','atlantic salmon','sockeye','salmon fillet','baked salmon','grilled salmon']],
+  'tilapia':            [37, 7.7, 0, 0.8, 6,   ['tilapia','tilapia fillet']],
+  'cod':                [30, 6.9, 0, 0.3, 6,   ['cod','cod fillet','baked cod','atlantic cod']],
+  'catfish':            [42, 6.5, 0, 2.0, 6,   ['catfish','fried catfish','catfish fillet']],
+  'trout':              [54, 6.8, 0, 3.0, 6,   ['trout','rainbow trout','trout fillet','steelhead trout']],
+  'tuna steak':         [52, 8.5, 0, 1.8, 6,   ['tuna steak','ahi tuna','yellowfin tuna','seared tuna']],
+  'canned tuna':        [30, 6.7, 0, 0.3, 5,   ['canned tuna','tuna can','tuna in water','chunk light tuna']],
+  'shrimp':             [28, 5.7, 0, 0.4, 5,   ['shrimp','prawn','grilled shrimp','shrimp cocktail']],
+  'scallops':           [33, 6.3, 1.5, 0.3, 5, ['scallop','scallops','sea scallops','seared scallops']],
+  'crab':               [28, 5.8, 0, 0.5, 4,   ['crab','crab meat','lump crab','dungeness crab','king crab']],
+  'lobster':            [28, 6.0, 0.4, 0.3, 5, ['lobster','lobster tail','maine lobster']],
+  'mahi mahi':          [38, 8.0, 0, 0.8, 6,   ['mahi mahi','mahi','dolphinfish']],
+  'halibut':            [40, 7.5, 0, 0.9, 6,   ['halibut','halibut fillet']],
+  'sardines':           [59, 6.8, 0, 3.5, 2,   ['sardines','canned sardines']],
+  // ═══ EGGS & DAIRY PROTEIN ═══
+  'eggs':               [40, 3.4, 0.2, 2.8, 1.75, ['egg','eggs','scrambled eggs','fried egg','hard boiled egg','poached egg']],
+  'egg whites':         [15, 3.6, 0.2, 0.05,1.1,  ['egg white','egg whites','liquid egg','egg beaters']],
+  'greek yogurt':       [17, 2.0, 1.5, 0.3, 5.3,  ['greek yogurt','plain greek yogurt','chobani','oikos','fage','stonyfield greek']],
+  'greek yogurt flavored':[18,1.6, 2.5, 0.3, 5.3, ['flavored greek yogurt','chobani flip','vanilla greek yogurt','strawberry greek yogurt']],
+  'cottage cheese':     [25, 3.5, 0.7, 0.5, 4,    ['cottage cheese','lowfat cottage cheese']],
+  'string cheese':      [80, 6.0, 0.5, 5.5, 1,    ['string cheese','mozzarella stick']],
+  'cheddar cheese':     [114,7.0, 0.4, 9.4, 1,    ['cheddar','cheddar cheese','shredded cheddar','cheddar slice']],
+  'mozzarella':         [90, 6.0, 0.6, 6.5, 1,    ['mozzarella','fresh mozzarella','shredded mozzarella','mozz']],
+  'parmesan':           [122,11.3,1.0, 8.1, 0.5,  ['parmesan','parmigiano','parm','grated parmesan']],
+  'cream cheese':       [98, 1.7, 1.2, 9.6, 1,    ['cream cheese','philadelphia cream cheese','whipped cream cheese']],
+  'sour cream':         [55, 0.8, 1.3, 5.5, 2,    ['sour cream','full fat sour cream']],
+  'whole milk':         [18, 1.0, 1.4, 1.0, 8,    ['whole milk','milk','full fat milk','dairy milk']],
+  '2% milk':            [15, 1.0, 1.5, 0.6, 8,    ['2% milk','reduced fat milk','low fat milk']],
+  'protein shake':      [130,25,  5,   2.5, 1,    ['protein shake','protein powder','whey','casein','protein drink','muscle milk','protein smoothie']],
+  // ═══ NUTS & FATS ═══
+  'almonds':            [164,6.0, 6.0, 14,  1.5,  ['almonds','almond','roasted almonds','raw almonds']],
+  'peanut butter':      [166,7.0, 6.0, 14,  2,    ['peanut butter','pb','natural peanut butter','jif','skippy']],
+  'almond butter':      [168,6.0, 6.0, 15,  2,    ['almond butter','natural almond butter']],
+  'cashews':            [157,5.2, 9.0, 12.5,1,    ['cashews','cashew','roasted cashews']],
+  'walnuts':            [185,4.3, 3.9, 18.5,1,    ['walnuts','walnut','raw walnuts']],
+  'mixed nuts':         [168,4.7, 7.2, 14.8,1,    ['mixed nuts','trail mix nuts']],
+  'avocado':            [45, 0.5, 2.4, 4.1, 3,    ['avocado','avocado half','sliced avocado']],
+  'olive oil':          [250,0,   0,   28,  0.5,  ['olive oil','extra virgin olive oil','evoo']],
+  'butter':             [200,0.2, 0,   22.5,0.5,  ['butter','real butter','salted butter','unsalted butter']],
+  'coconut oil':        [250,0,   0,   28,  0.5,  ['coconut oil']],
+  // ═══ GRAINS & CARBS ═══
+  'oatmeal':            [17, 0.75,3.0, 0.35,8,    ['oatmeal','oats','rolled oats','instant oats','oatmeal bowl']],
+  'brown rice':         [32, 0.65,6.8, 0.3, 10,   ['brown rice']],
+  'white rice':         [36, 0.65,7.9, 0.1, 10,   ['white rice','rice','jasmine rice','cooked rice','steamed rice']],
+  'fried rice':         [45, 0.9, 7.5, 1.5, 8,    ['fried rice','egg fried rice']],
+  'quinoa':             [34, 1.5, 5.9, 0.6, 8,    ['quinoa']],
+  'sweet potato':       [24, 0.5, 5.5, 0.05,6,   ['sweet potato','yam','baked sweet potato']],
+  'white potato':       [22, 0.5, 5.0, 0.03,8,   ['potato','baked potato','russet potato','white potato','mashed potato']],
+  'pasta':              [40, 1.4, 8.0, 0.2, 10,   ['pasta','spaghetti','penne','noodles','cooked pasta','fettuccine','linguine','rigatoni']],
+  'whole wheat pasta':  [38, 1.7, 7.5, 0.3, 10,   ['whole wheat pasta','whole grain pasta','wheat pasta']],
+  'black beans':        [27, 1.8, 4.8, 0.1, 6,    ['black beans','beans','kidney beans','pinto beans','refried beans']],
+  'lentils':            [29, 2.5, 5.0, 0.1, 6,    ['lentils','lentil soup','red lentils','green lentils']],
+  'chickpeas':          [47, 2.4, 7.8, 0.9, 5,    ['chickpeas','garbanzo beans','hummus chickpeas']],
+  'corn':               [26, 0.9, 5.6, 0.4, 4,    ['corn','sweet corn','corn on the cob','canned corn']],
+  'whole wheat bread':  [69, 2.8,11.5, 1.0, 1,  ['whole wheat bread','wheat bread','whole grain bread','whole wheat slice','dave killer bread','sara lee wheat','nature own wheat']],
+  'white bread':        [75, 2.5,14.0, 1.0, 1,  ['white bread','wonder bread','white sandwich bread','sandwich bread','plain white bread','nature own white']],
+  'artisan bread':      [87, 3.0,17.0, 1.0, 1,  ['artisan bread','country bread','country farm bread','rustic bread','bakery bread','crusty bread','boule']],
+  'sourdough':          [78, 3.2,15.5, 0.5, 1,  ['sourdough','sourdough bread','sourdough slice']],
+  'french bread':       [82, 2.8,16.5, 0.7, 1,  ['french bread','baguette','baguette slice','french loaf']],
+  'italian bread':      [80, 2.8,15.5, 1.0, 1,  ['italian bread','ciabatta','ciabatta bread']],
+  'rye bread':          [65, 2.7,12.0, 0.8, 1,  ['rye bread','rye','dark rye','pumpernickel','marble rye']],
+  'brioche':            [115,3.5,14.5, 5.0, 1,  ['brioche','brioche bread','brioche loaf']],
+  'brioche bun':        [130,4.0,20.0, 4.5, 1,  ['brioche bun','brioche hamburger bun']],
+  'hamburger bun':      [120,4.0,21.0, 2.0, 1,  ['hamburger bun','bun','sesame bun','potato bun','hot dog bun']],
+  'dinner roll':        [90, 2.5,15.5, 2.0, 1,  ['dinner roll','roll','soft roll','wheat roll']],
+  'naan':               [140,4.5,24.0, 3.5, 1,  ['naan','naan bread','garlic naan']],
+  'cornbread':          [193,4.3,29.0, 7.0, 1,  ['cornbread','corn bread','southern cornbread','jiffy cornbread']],
+  'banana bread':       [196,2.6,33.0, 6.3, 1,  ['banana bread','banana loaf']],
+  'focaccia':           [100,3.0,16.0, 3.5, 1,  ['focaccia','focaccia bread']],
+  'flatbread':          [95, 3.0,16.5, 2.5, 1,  ['flatbread','flat bread','lavash']],
+  'rice cake':          [35, 0.7, 7.5, 0.3, 1,  ['rice cake','rice cakes','quaker rice cake']],
+  'croutons':           [122,2.5,18.0, 4.5, 1,  ['croutons','crouton']],
+  'sourdough':          [78, 3.2,15.5, 0.5, 1,  ['sourdough','sourdough bread','sourdough slice']],
+  'french bread':       [82, 2.8,16.5, 0.7, 1,  ['french bread','baguette','baguette slice','french loaf']],
+  'italian bread':      [80, 2.8,15.5, 1.0, 1,  ['italian bread','ciabatta','ciabatta bread']],
+  'rye bread':          [65, 2.7,12.0, 0.8, 1,  ['rye bread','rye','dark rye','pumpernickel','marble rye']],
+  'brioche':            [115,3.5,14.5, 5.0, 1,  ['brioche','brioche bread','brioche loaf']],
+  'brioche bun':        [130,4.0,20.0, 4.5, 1,  ['brioche bun','brioche hamburger bun']],
+  'hamburger bun':      [120,4.0,21.0, 2.0, 1,  ['hamburger bun','bun','sesame bun','potato bun','hot dog bun']],
+  'dinner roll':        [90, 2.5,15.5, 2.0, 1,  ['dinner roll','roll','soft roll','wheat roll']],
+  'naan':               [140,4.5,24.0, 3.5, 1,  ['naan','naan bread','garlic naan']],
+  'cornbread':          [193,4.3,29.0, 7.0, 1,  ['cornbread','corn bread','southern cornbread','jiffy cornbread']],
+  'banana bread':       [196,2.6,33.0, 6.3, 1,  ['banana bread','banana loaf']],
+  'focaccia':           [100,3.0,16.0, 3.5, 1,  ['focaccia','focaccia bread']],
+  'flatbread':          [95, 3.0,16.5, 2.5, 1,  ['flatbread','flat bread','lavash']],
+  'rice cake':          [35, 0.7, 7.5, 0.3, 1,  ['rice cake','rice cakes','quaker rice cake']],
+  'croutons':           [122,2.5,18.0, 4.5, 1,  ['croutons','crouton']],
+  'whole wheat tortilla':[130,4.0,22.0, 3.5, 1,   ['whole wheat tortilla','wheat tortilla','flour tortilla','tortilla']],
+  'corn tortilla':      [52, 1.4,10.8, 0.7, 1,    ['corn tortilla','soft corn tortilla']],
+  'bagel':              [75, 2.25,14.5,0.5, 4,    ['bagel','plain bagel','everything bagel','everything but the bagel']],
+  'english muffin':     [67, 2.5,13.0, 0.7, 2,    ['english muffin','thomas english muffin']],
+  'pita bread':         [77, 2.8,15.8, 0.7, 1,    ['pita','pita bread','pita pocket']],
+  'granola':            [120,2.5,18.0, 4.5, 2,    ['granola','granola cereal']],
+  'granola bar':        [138,2.8,19.5, 5,   1.4,  ['granola bar','nature valley','kind bar']],
+  'cereal':             [110,2.5,24.0, 0.5, 1.5,  ['cereal','breakfast cereal','corn flakes','cheerios']],
+  // ═══ FRUITS ═══
+  'banana':             [25, 0.3, 6.4, 0.1, 4,    ['banana']],
+  'apple':              [15, 0.1, 3.9, 0.05,6,   ['apple','gala apple','fuji apple','granny smith']],
+  'orange':             [14, 0.3, 3.4, 0.05,5,   ['orange','navel orange','clementine','mandarin']],
+  'grapes':             [19, 0.2, 5.0, 0.05,5,   ['grapes','red grapes','green grapes']],
+  'strawberries':       [9,  0.2, 2.1, 0.1, 5,   ['strawberries','strawberry','fresh strawberries']],
+  'blueberries':        [16, 0.2, 4.1, 0.1, 4,   ['blueberries','blueberry','fresh blueberries']],
+  'watermelon':         [9,  0.2, 2.3, 0.05,8,   ['watermelon']],
+  'mango':              [18, 0.2, 4.5, 0.05,5,   ['mango','fresh mango','sliced mango']],
+  'pineapple':          [14, 0.2, 3.5, 0.05,4,   ['pineapple','pineapple chunks','pineapple rings','fresh pineapple']],
+  'peach':              [12, 0.2, 3.0, 0.05,5,   ['peach','fresh peach','nectarine']],
+  'berries mixed':      [12, 0.2, 2.8, 0.1, 4,   ['mixed berries','berry mix','frozen berries']],
+  // ═══ VEGETABLES ═══
+  'broccoli':           [10, 0.8, 1.8, 0.1, 6,   ['broccoli','broccoli florets','steamed broccoli','roasted broccoli']],
+  'spinach':            [6,  0.8, 0.9, 0.1, 3,   ['spinach','baby spinach','sauteed spinach']],
+  'kale':               [7,  0.7, 1.0, 0.1, 3,   ['kale','kale chips','massaged kale']],
+  'romaine':            [5,  0.4, 0.9, 0.1, 3,   ['romaine','lettuce','mixed greens','salad greens','iceberg']],
+  'asparagus':          [6,  0.6, 1.1, 0.05,5,  ['asparagus','roasted asparagus','grilled asparagus']],
+  'zucchini':           [5,  0.4, 1.0, 0.1, 5,   ['zucchini','squash','yellow squash','zucchini noodles']],
+  'peppers':            [9,  0.3, 2.0, 0.1, 3,   ['peppers','bell pepper','red pepper','green pepper','orange pepper']],
+  'onion':              [11, 0.3, 2.6, 0.04,2,  ['onion','onions','caramelized onion','red onion','white onion']],
+  'mushrooms':          [6,  0.9, 0.9, 0.1, 4,   ['mushroom','mushrooms','sauteed mushrooms','portobello','cremini']],
+  'tomato':             [5,  0.2, 1.1, 0.05,4,  ['tomato','tomatoes','cherry tomatoes','roma tomato','sliced tomato']],
+  'cucumber':           [4,  0.2, 0.9, 0.05,4,  ['cucumber','sliced cucumber','english cucumber']],
+  'carrots':            [12, 0.3, 2.8, 0.05,3,  ['carrots','carrot','baby carrots','raw carrots']],
+  'celery':             [4,  0.2, 0.8, 0.05,3,  ['celery','celery sticks']],
+  'green beans':        [9,  0.5, 2.0, 0.1, 4,   ['green beans','string beans','haricot verts']],
+  'brussels sprouts':   [12, 1.0, 2.4, 0.1, 5,   ['brussels sprouts','brussel sprouts','roasted brussels']],
+  'cauliflower':        [7,  0.6, 1.5, 0.1, 5,   ['cauliflower','roasted cauliflower','cauliflower rice']],
+  'edamame':            [37, 3.5, 2.8, 1.5, 3,   ['edamame','soy beans','edamame beans']],
+  'mixed vegetables':   [8,  0.5, 1.5, 0.1, 6,   ['mixed vegetables','veggies','vegetables','stir fry vegetables']],
+  // ═══ FAST FOOD ═══
+  'big mac':            [550,25, 46, 30,  1,     ['big mac','bigmac']],
+  'mcchicken':          [400,14, 42, 17,  1,     ['mcchicken','mcdouble','mcdonald']],
+  'chick fil a sandwich':[440,28,40, 19,  1,     ['chick fil a','chickfila','chick-fil-a sandwich','chick-fil-a']],
+  'chipotle burrito':   [1050,52,103,47,  1,     ['chipotle burrito','chipotle']],
+  'chipotle bowl':      [750,45, 75, 28,  1,     ['chipotle bowl','chipotle rice bowl']],
+  'subway 6in turkey':  [280,18, 43, 4.5, 1,     ['subway turkey','6 inch turkey','subway sandwich']],
+  'pizza slice':        [285,12, 36, 10,  1,     ['pizza','pizza slice','pepperoni pizza','cheese pizza slice']],
+  'caesar salad':       [480,10, 20, 40,  1,     ['caesar salad','restaurant caesar']],
+  'french fries':       [76, 1.2,10.0,3.5,4,    ['french fries','fries','fry','mcdonalds fries','waffle fries','steak fries']],
+  'taco':               [170,8,  16,  8,  1,     ['taco','soft taco','hard taco','beef taco']],
+  'burrito':            [500,22, 65, 16,  1,     ['burrito','beef burrito','bean burrito']],
+  'hot dog':            [280,10, 22, 17,  1,     ['hot dog','hotdog','frankfurter','ballpark frank']],
+  // ═══ BREAKFAST ═══
+  'bagel':              [75, 2.25,14.5,0.5,4,   ['bagel','plain bagel','everything bagel']],
+  'pancakes':           [73, 1.8,14.0, 1.5,1,   ['pancake','pancakes','buttermilk pancake','flapjack']],
+  'waffle':             [82, 2.2,15.5, 2.0,1,   ['waffle','waffles','buttermilk waffle','belgian waffle']],
+  'french toast':       [80, 2.8,11.5, 2.5,1,   ['french toast']],
+  // ═══ BEVERAGES ═══
+  'coffee black':       [0.25,0.04,0,  0,   12,  ['coffee','black coffee','drip coffee']],
+  'latte':              [10,  0.5, 1.0,0.42,12,  ['latte','coffee latte','starbucks latte','flat white']],
+  'cappuccino':         [8,   0.5, 0.8,0.35,8,   ['cappuccino','cap']],
+  'orange juice':       [14,  0.25,3.25,0.06,8,  ['orange juice','oj','fresh squeezed oj']],
+  'apple juice':        [14,  0.05,3.5,0.02,8,   ['apple juice']],
+  'soda':               [11.7,0,  3.25,0,  12,   ['soda','coke','pepsi','sprite','pop','diet soda','dr pepper','mountain dew']],
+  'beer':               [12.75,0.13,1.1,0, 12,   ['beer','light beer','bud light','miller lite','coors light','corona']],
+  'wine red':           [25,  0.1, 1.0,0,   5,   ['red wine','cabernet','merlot','pinot noir','malbec','wine']],
+  'wine white':         [24,  0.1, 0.9,0,   5,   ['white wine','chardonnay','sauvignon blanc','pinot grigio','riesling']],
+  'spirits':            [65,  0,   0,  0,   1.5, ['whiskey','vodka','tequila','rum','gin','bourbon','scotch','shot','liquor']],
+  'whole milk':         [18,  1.0, 1.4,1.0, 8,   ['whole milk','milk','full fat milk','dairy milk']],
+  '2% milk':            [15,  1.0, 1.5,0.6, 8,   ['2% milk','reduced fat milk','low fat milk']],
+  'almond milk':        [5,   0.2, 0.5,0.3, 8,   ['almond milk','unsweetened almond milk']],
+  'oat milk':           [15,  0.4, 2.3,0.5, 8,   ['oat milk','oatly']],
+  'protein shake':      [130, 25,  5,  2.5, 1,   ['protein shake','protein powder','whey','casein','protein drink','muscle milk']],
+  // ═══ CONDIMENTS & SAUCES ═══
+  'hummus':             [50,  2.4, 4.0,3.0, 2,   ['hummus','roasted red pepper hummus','classic hummus']],
+  'guacamole':          [45,  0.5, 2.5,4.0, 2,   ['guacamole','guac']],
+  'salsa':              [10,  0.3, 2.0,0.05,2,   ['salsa','fresh salsa','pico de gallo','tomato salsa']],
+  'ketchup':            [20,  0.3, 5.0,0.05,0.5, ['ketchup','catsup']],
+  'mayo':               [190, 0.2, 0.5,21, 0.5,  ['mayo','mayonnaise','hellmanns','duke mayo']],
+  'ranch':              [145, 0.4, 1.5,15, 1,    ['ranch','ranch dressing','ranch sauce']],
+  'hot sauce':          [1,   0.1, 0.1,0,  0.5,  ['hot sauce','tabasco','franks red hot','sriracha']],
+  'bbq sauce':          [35,  0.2, 8.5,0.2,1,   ['bbq sauce','barbecue sauce','sweet baby rays']],
+  'soy sauce':          [8,   0.8, 0.8,0,  0.5,  ['soy sauce','tamari','low sodium soy sauce']],
 };
+
+
 
 // Portion size patterns
 const QTY_PATTERNS = [
@@ -2320,6 +2413,13 @@ async function estimateFood() {
   const apiSegments = []; // segments that need API lookup
 
   for (const seg of segments) {
+    // Check for complex food keywords FIRST — dips, soups, sauces etc
+    // should always go to API with clarification regardless of any local match
+    if (needsClarification(seg)) {
+      apiSegments.push(seg);
+      resolved.push(null);
+      continue;
+    }
     // 1. Local DB
     const localItem = matchSegment(seg);
     if (localItem && localItem.conf >= 0.55) {
@@ -2335,7 +2435,7 @@ async function estimateFood() {
     }
     // 3. Needs API
     apiSegments.push(seg);
-    resolved.push(null); // placeholder
+    resolved.push(null);
   }
 
   // Batch API lookup — check if any segments need clarification first
