@@ -790,10 +790,10 @@
   <div class="panel active" id="panel-dashboard">
     <div id="dash-alert"></div>
 
-    <!-- MORNING BRIEF -->
-    <div id="morning-brief-card" style="display:none" class="card">
+    <!-- YESTERDAY'S RECAP -->
+    <div id="morning-brief-card" style="display:none" class="card" style="border-color:var(--accent)">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <div class="card-title" style="margin-bottom:0">☀️ Morning Brief</div>
+        <div class="card-title" style="margin-bottom:0">📊 Yesterday's Recap</div>
         <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="morning-brief-date"></span>
       </div>
       <div id="morning-brief-content">
@@ -1312,9 +1312,9 @@ async function checkMorningBrief() {
   const today = new Date().toISOString().split('T')[0];
   const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
 
-  // Only show in the morning — before 11am
+  // Show until 7pm
   const hour = new Date().getHours();
-  if (hour >= 11) return;
+  if (hour >= 19) return;
 
   // Only show if yesterday has food logs
   const yesterdayFood = d.foodLogs.filter(f => f.date === yesterday);
@@ -1404,9 +1404,6 @@ function showMorningBrief(brief, date) {
   dateEl.textContent = 'Based on ' + date;
   content.innerHTML = `
     <div style="font-size:14px;line-height:1.7;color:var(--text)">${brief.replace(/\n/g,'<br>')}</div>
-    <div style="margin-top:12px;padding-top:10px;border-top:1px solid var(--border);display:flex;justify-content:flex-end">
-      <button onclick="dismissMorningBrief()" class="btn btn-outline btn-sm">Got it</button>
-    </div>
   `;
 }
 
@@ -3213,15 +3210,44 @@ function renderFoodToday() {
     const mealItems = todayFood.filter(f => f.meal === meal);
     if (!mealItems.length) return;
     html += `<div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin:10px 0 6px">${meal}</div>`;
-    mealItems.forEach((f, fi) => {
+    mealItems.forEach((f) => {
       const idx = d.foodLogs.findIndex(x => x.timestamp === f.timestamp);
       html += `
-        <div class="log-item protein">
-          <div class="log-item-left">
-            <div class="log-item-name">${f.name}</div>
+        <div class="log-item protein" id="food-item-${idx}">
+          <div class="log-item-left" onclick="toggleFoodEdit(${idx})" style="cursor:pointer;flex:1">
+            <div class="log-item-name">${f.name} <span style="font-size:11px;color:var(--muted)">✎</span></div>
             <div class="log-item-meta">${f.calories} cal · ${f.protein}g protein · ${f.carbs}g carbs · ${f.fat}g fat${f.water ? ' · 💧' + f.water + 'oz' : ''}</div>
           </div>
           <button class="btn btn-danger" onclick="deleteFood(${idx})">✕</button>
+        </div>
+        <div id="food-edit-${idx}" style="display:none;background:var(--surface2);border:1px solid var(--accent);border-radius:10px;padding:14px;margin-bottom:8px">
+          <div style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px">Edit Entry</div>
+          <div style="margin-bottom:10px">
+            <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Description</label>
+            <input type="text" id="edit-name-${idx}" value="${f.name}" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--font);font-size:13px;padding:8px 10px;border-radius:6px;outline:none">
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+            <div>
+              <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Cal</label>
+              <input type="number" id="edit-cal-${idx}" value="${f.calories}" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Protein</label>
+              <input type="number" id="edit-protein-${idx}" value="${f.protein}" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Carbs</label>
+              <input type="number" id="edit-carbs-${idx}" value="${f.carbs}" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none">
+            </div>
+            <div>
+              <label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:4px">Fat</label>
+              <input type="number" id="edit-fat-${idx}" value="${f.fat}" style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);font-family:var(--mono);font-size:13px;padding:8px 10px;border-radius:6px;outline:none">
+            </div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="saveFoodEdit(${idx})" style="flex:1">Save ✓</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleFoodEdit(${idx})">Cancel</button>
+          </div>
         </div>
       `;
     });
@@ -3262,6 +3288,30 @@ function renderFoodToday() {
   `;
 
   el.innerHTML = html;
+}
+
+function toggleFoodEdit(idx) {
+  const editEl = document.getElementById('food-edit-' + idx);
+  const isOpen = editEl.style.display !== 'none';
+  // Close all open edits first
+  document.querySelectorAll('[id^="food-edit-"]').forEach(el => el.style.display = 'none');
+  if (!isOpen) editEl.style.display = 'block';
+}
+
+function saveFoodEdit(idx) {
+  const d = getData();
+  const entry = d.foodLogs[idx];
+  if (!entry) return;
+
+  entry.name     = document.getElementById('edit-name-' + idx).value.trim() || entry.name;
+  entry.calories = parseInt(document.getElementById('edit-cal-' + idx).value) || 0;
+  entry.protein  = parseInt(document.getElementById('edit-protein-' + idx).value) || 0;
+  entry.carbs    = parseInt(document.getElementById('edit-carbs-' + idx).value) || 0;
+  entry.fat      = parseInt(document.getElementById('edit-fat-' + idx).value) || 0;
+
+  saveData(d);
+  renderAll();
+  showToast('Entry updated ✓');
 }
 
 function renderFoodHistory() {
