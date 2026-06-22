@@ -2405,7 +2405,8 @@ const FOOD_DB = {
   'waffle':            [82, 2.2,15.5, 2.0,1,  ['waffle','waffles','buttermilk waffle','belgian waffle','eggo waffle','eggo','kashi waffle','frozen waffle','toaster waffle']],
   'french toast':      [80, 2.8,11.5, 2.5,1,  ['french toast','stuffed french toast','brioche french toast','thick cut french toast']],
   'granola':           [120,2.5,18.0, 4.5,2,  ['granola','granola cereal','nature valley granola','kashi granola','quaker granola','homemade granola','honey granola']],
-  'granola bar':       [138,2.8,19.5, 5, 1.4, ['granola bar','nature valley granola bar','kind bar','kind snack bar','larabar','rxbar','cliff bar','clif bar','kind dark chocolate','nature valley crunch','quaker granola bar','nutrigrain bar']],
+  'granola bar':       [138,2.8,19.5, 5, 1.4, ['granola bar','nature valley granola bar','kind bar','kind snack bar','larabar','cliff bar','clif bar','kind dark chocolate','nature valley crunch','quaker granola bar','nutrigrain bar','kind protein bar','clif energy bar','clif chocolate chip']],
+  'rxbar':             [210,12, 23,  9,  1,   ['rxbar','rx bar','rxbar chocolate sea salt','rxbar blueberry','rxbar mixed berry','rxbar coconut chocolate','rxbar vanilla almond','rxbar peanut butter','rxbar peanut butter chocolate','rxbar nut butter','rxbar nut butter oat','rxbar nut butter and oat','rxbar dark chocolate peanut butter','rxbar nut butter oat dark chocolate peanut butter','nut butter rxbar','rx bar peanut butter','rxbar oat']],
   'cereal':            [110,2.5,24.0, 0.5,1.5,['cereal','breakfast cereal','corn flakes','cheerios','special k','frosted flakes','raisin bran','honey nut cheerios','total cereal','wheaties','life cereal']],
   // ═══════════════════════════════════════════
   // BEVERAGES — brands and varieties
@@ -2537,9 +2538,16 @@ async function estimateFood() {
     .replace(/\bof\s+a\b|\bof\s+an\b/g, ' ') // strip "of a" / "of an"
     .replace(/\ba\s+(?=[a-z])/g, ' ');        // strip leading "a " before food
 
+  // Smart splitting — if the description has no commas, & is likely part of a
+  // product name (e.g. "RXBar Nut Butter & Oat"), not a meal separator
+  const hasComma = normalized.includes(',');
+  const splitPattern = hasComma
+    ? /[,+&\/]|(?:\band\b)|(?:\bwith\b)|(?:\bplus\b)/   // full splitting when commas present
+    : /[,+\/]|(?:\band\b)|(?:\bwith\b)|(?:\bplus\b)/;   // no & splitting for single-item descriptions
+
   // Split into segments
   const segments = normalized
-    .split(/[,+&\/]|(?:\band\b)|(?:\bwith\b)|(?:\bplus\b)/)
+    .split(splitPattern)
     .map(s => s.trim())
     .filter(s => {
       if (!s) return false;
