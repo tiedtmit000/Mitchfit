@@ -1887,6 +1887,14 @@ const EXERCISES = {
     tip:'GOLF TRANSFER: The KB swing is the closest gym movement to a golf swing — same hip hinge, same explosive hip extension, same posterior chain. 5 rounds of 15 at 35lbs is serious cardio.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
+  kb_deadlift_hold: { name:'KB Deadlift Hold', cat:'cardio', loc:HOME, sets:3, reps:'40 sec', weight:'35lb KBs', rest:60,
+    tip:'Two KBs at sides, deadlift to standing, hold tall for 40 seconds. Shoulders packed, core braced, do not let hips drift. Trains the same grip, bracing, and loaded carry stimulus as farmer carry with zero walking required. Progress by increasing hold time or adding weight.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  single_arm_kb_dl: { name:'Single-Arm KB Deadlift', cat:'core', loc:HOME, sets:3, reps:'10 each side', weight:'35lb KB', rest:60,
+    tip:'One KB between feet slightly offset to one side. Hinge, grip with one hand, stand tall resisting the lateral lean — that anti-tilt demand is the oblique and QL work you get from a suitcase carry. Keep the working shoulder packed and hips square at the top.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
   kb_farmer_carry:  { name:'KB Farmer Carry (40 steps)', cat:'cardio', loc:BOTH, sets:4, reps:'40 steps', weight:'35lb KBs', rest:60,
     tip:'Walk tall, core braced, shoulders packed. Builds grip, core, and conditioning simultaneously. One of the highest calorie burn movements per unit of time.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
@@ -1998,6 +2006,11 @@ const EXERCISES = {
   wrist_curl:       { name:'Wrist Curl & Extension', cat:'arms', loc:BOTH, sets:2, reps:'15 each direction', weight:'15lb DB', rest:30,
     tip:'GOLF/ARCHERY: Forearms on thighs, curl wrists up then reverse. Wrist stability is the difference between consistent ball striking and flipping at impact. Also prevents the common archer elbow issue. You already have thick forearms — this is maintenance.',
     weightRec:{ phase1:10, phase2:15, phase3:15, machine:false, unit:'lb' } },
+
+  // ── DAY B GYM CORE — Equipment-based, no floor contact
+  hanging_leg_raise: { name:"Hanging Leg Raise", cat:'core', loc:GYM, sets:3, reps:'12', weight:'bodyweight', rest:60,
+    tip:"Captain's chair or straight bar. Legs straight or bent — straight is harder. Drive knees to chest at the top, do not just swing. The lower back must stay neutral throughout — if it arches you are using hip flexors without core bracing, which defeats the purpose. Most people cannot do this correctly at first. Shorten the range until you can.",
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
 
   // ── DAY A GYM CORE — Standing loaded, Option B replacements for floor work
   // These replace dead_bug / bird_dog on gym workouts only
@@ -2311,7 +2324,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
         E.landmine_deadlift,
       ],
       home: [
-        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'bodyweight', rest:90, tip:'Use a sturdy chair or step. Explosive drive up, slow on the way down.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'Use a sturdy chair or step, hold 25lb DBs at sides. Explosive drive up through the heel, slow controlled descent. DBs add load without requiring a barbell.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         E.hip_thrust,
         E.single_leg_rdl,
@@ -2335,7 +2348,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        { name:'Walking Lunge', cat:'legs', loc:HOME, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement forward. More aerobic than static lunges.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:60, tip:'Step back, lower knee toward mat, drive through front heel to stand. Stationary — fits a 4x8 mat. Same quad and glute demand as walking lunge without forward travel.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
         { ...E.dead_bug, sets:3 },
         { ...E.bird_dog, sets:3 },
@@ -2376,14 +2389,14 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
     const exercises = isGym
       ? [
           { ...E.treadmill_walk, reps:'15 min', sets:1 },
-          { ...E.plank, sets:3 },
-          { ...E.hollow_hold, sets:3 },
           { ...E.cable_crunch, sets:3 },
+          { ...E.hanging_leg_raise, sets:3 },
+          { ...E.landmine_rotation, sets:3 },
           { ...E.kb_farmer_carry, sets:3 },
         ]
       : [
           { ...E.kb_swing, sets:3 },
-          { ...E.kb_farmer_carry, sets:3 },
+          { ...E.kb_deadlift_hold, sets:3 },
           { ...E.march_in_place, sets:3 },
           { ...E.plank, sets:3 },
           { ...E.hollow_hold, sets:3 },
@@ -2394,7 +2407,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       focus: 'Fat Burn · Heart Rate · Core',
       calBurn: '150-220',
       exercises,
-      notes: 'Intro cardio. Core work here is anti-extension only — plank and hollow hold. Dead bug and bird dog stay on Day A where they belong.',
+      notes: isGym ? 'Intro cardio. Gym core: cable crunch and ab wheel — equipment-based, no floor work. Landmine rotation trains the golf swing plane from session one.' : 'Intro cardio. Home core: hollow hold and plank are the correct floor substitutes without cable equipment.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
@@ -2414,18 +2427,15 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
         E.cable_crunch,
         E.suitcase_carry,
         E.landmine_rotation,
-        E.plank,
-        E.hollow_hold,
-        E.ab_wheel,
+        E.hanging_leg_raise,
       ],
       home: [
         { ...E.kb_swing, sets:5 },
-        E.kb_farmer_carry,
-        E.suitcase_carry,
-        E.ab_wheel,
+        E.kb_deadlift_hold,
+        E.single_arm_kb_dl,
+        { name:'Renegade Row', cat:'core', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up at a time. Core braces hard against rotation the entire set — this is loaded anti-rotation work, not just a row. Keep hips square.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.hollow_hold,
         E.plank,
-        E.march_in_place,
       ],
     },
     // VARIANT 2: Cross Training + Anti-Rotation Core
@@ -2441,14 +2451,13 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
         E.cable_crunch,
         E.landmine_rotation,
         E.suitcase_carry,
-        E.hollow_hold,
+        E.hanging_leg_raise,
       ],
       home: [
         { ...E.kb_swing, sets:4 },
-        E.kb_farmer_carry,
+        E.kb_deadlift_hold,
         { ...E.march_in_place, sets:4 },
-        E.suitcase_carry,
-        E.ab_wheel,
+        E.single_arm_kb_dl,
         E.hollow_hold,
         E.plank,
       ],
@@ -2461,17 +2470,16 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       gym: [
         { name:'Treadmill Intervals', cat:'cardio', loc:GYM, sets:6, reps:'2 min easy / 1 min harder', weight:'3.5mph / 4% then 4mph / 6% incline', rest:0, tip:'2 minutes at 3.5mph / 4% incline. Then 1 minute at 4mph / 6% incline. Repeat 6 rounds. Do not run — incline is the intensity lever.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
         E.cable_crunch,
-        E.ab_wheel,
+        E.hanging_leg_raise,
         E.landmine_rotation,
-        E.hollow_hold,
+        E.suitcase_carry,
       ],
       home: [
         { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is what conditioning is supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        E.suitcase_carry,
-        E.ab_wheel,
+        E.single_arm_kb_dl,
         E.hollow_hold,
         E.plank,
-        E.kb_farmer_carry,
+        E.kb_deadlift_hold,
       ],
     },
     // VARIANT 4: Loaded Carries Circuit + Core
@@ -2486,14 +2494,13 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
         E.suitcase_carry,
         E.cable_crunch,
         E.landmine_rotation,
-        E.ab_wheel,
+        E.hanging_leg_raise,
       ],
       home: [
         { ...E.kb_swing, sets:4, reps:'20' },
-        { ...E.kb_farmer_carry, sets:5, reps:'50 steps' },
-        E.suitcase_carry,
-        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Core braces hard the entire set — total body conditioning.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        E.ab_wheel,
+        { ...E.kb_deadlift_hold, sets:4, reps:'40 sec' },
+        E.single_arm_kb_dl,
+        { name:'Renegade Row', cat:'core', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up at a time. Core braces hard against rotation the entire set. Keep hips square.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.hollow_hold,
         E.plank,
       ],
@@ -2704,15 +2711,15 @@ const SUBSTITUTIONS = {
   'Single-Leg Romanian Deadlift':  ['KB Romanian Deadlift', 'DB Romanian Deadlift', 'Hip Thrust', 'Glute Bridge'],
   'Hip Thrust':                    ['Glute Bridge', 'KB Romanian Deadlift', 'Single-Leg Romanian Deadlift'],
   'Leg Press Machine':             ['Goblet Squat', 'Reverse Lunge', 'Box Step-Up', 'Wall Sit Hold'],
-  'Reverse Lunge':                 ['Goblet Squat', 'Box Step-Up', 'Lateral Lunge', 'Walking Lunge'],
-  'Lateral Lunge':                 ['Reverse Lunge', 'Walking Lunge', 'Box Step-Up'],
-  'Walking Lunge':                 ['Reverse Lunge', 'Lateral Lunge', 'Box Step-Up'],
+  'Reverse Lunge':                 ['Goblet Squat', 'Box Step-Up', 'Lateral Lunge', 'Single-Arm KB Deadlift'],
+  'Lateral Lunge':                 ['Reverse Lunge', 'Reverse Lunge', 'Box Step-Up'],
+  'Reverse Lunge':                 ['Goblet Squat', 'Lateral Lunge', 'Box Step-Up'],  // was Walking Lunge
   'Box Step-Up':                   ['Reverse Lunge', 'Goblet Squat', 'Walking Lunge'],
   'KB Sumo Squat':                 ['Goblet Squat', 'Wall Sit Hold', 'Reverse Lunge'],
   'Wall Sit Hold':                 ['Goblet Squat', 'Leg Press Machine'],
   'Sumo KB Squat':                 ['Goblet Squat', 'KB Sumo Squat'],
-  'Leg Press High Rep':            ['Goblet Squat', 'Walking Lunge', 'Reverse Lunge'],
-  'KB Goblet Squat High Rep':      ['Goblet Squat', 'Walking Lunge', 'Wall Sit Hold'],
+  'Leg Press High Rep':            ['Goblet Squat', 'Reverse Lunge', 'Box Step-Up'],
+  'KB Goblet Squat High Rep':      ['Goblet Squat', 'Reverse Lunge', 'Wall Sit Hold'],
   'Sumo Squat to Stand':           ['Goblet Squat', 'KB Sumo Squat'],
   // CORE
   'Pallof Press':                  ['Dead Bug', 'Bird Dog', 'Plank Hold'],
@@ -2748,7 +2755,7 @@ const SUBSTITUTIONS = {
   'Rowing Machine':                ['Treadmill Incline Walk', 'Stationary Bike', 'KB Swing'],
   'Stationary Bike':               ['Treadmill Incline Walk', 'Rowing Machine'],
   'KB Swing':                      ['KB Farmer Carry (40 steps)', 'High Knees March', 'Shadow Jump Rope'],
-  'KB Farmer Carry (40 steps)':    ['KB Swing', 'High Knees March'],
+  'KB Farmer Carry (40 steps)':    ['KB Deadlift Hold', 'KB Swing'],
   'High Knees March':              ['KB Swing', 'Shadow Jump Rope'],
   'Treadmill Intervals':           ['Rowing Machine', 'Stationary Bike'],
   'KB Swing Intervals':            ['KB Farmer Carry (40 steps)', 'High Knees March'],
