@@ -940,37 +940,10 @@
       <div class="card" id="wo-plan-card">
         <!-- Filled by JS -->
       </div>
-
-      <!-- Log Form -->
-      <div class="card" id="wo-log-form">
-        <div class="card-title">Log This Workout</div>
-        <div class="form-row" style="margin-bottom:12px">
-          <div class="form-group" style="flex:1">
-            <label>Date</label>
-            <input type="date" id="wo-date">
-          </div>
-          <div class="form-group" style="flex:2">
-            <label>Workout Type</label>
-            <input type="text" id="wo-type" readonly style="background:var(--surface);cursor:default">
-          </div>
-        </div>
-        <div id="exercise-builder">
-          <div class="ex-header">
-            <span>Exercise</span><span>Sets</span><span>Reps</span><span>Weight</span><span></span>
-          </div>
-          <div id="exercise-rows"></div>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:10px">
-          <button class="btn btn-outline btn-sm" onclick="addExerciseRow()">+ Add Exercise</button>
-        </div>
-        <div class="form-group" style="margin-top:14px">
-          <label>Notes / How did it feel?</label>
-          <textarea id="wo-notes" placeholder="e.g. Felt strong on squats, struggled with pushups..."></textarea>
-        </div>
-        <div style="display:flex;gap:10px;margin-top:4px">
-          <button class="btn btn-primary" onclick="saveWorkout()" style="flex:1">Save Workout ✓</button>
-          <button class="btn btn-outline" onclick="resetWorkoutPlanner()">Start Over</button>
-        </div>
+      <div id="wo-feedback-section" style="display:none"></div>
+      <div id="wo-save-bar" style="display:none;padding:0 0 16px">
+        <button class="btn btn-primary" onclick="saveWorkout()" style="width:100%;padding:14px;font-size:15px">Save Workout ✓</button>
+        <button class="btn btn-outline" onclick="resetWorkoutPlanner()" style="width:100%;margin-top:8px">Start Over</button>
       </div>
     </div>
 
@@ -1837,7 +1810,11 @@ function resetWorkoutPlanner() {
   document.getElementById('gen-btn').disabled = true;
   document.getElementById('wo-questions').style.display = 'block';
   document.getElementById('wo-plan').style.display = 'none';
-  document.getElementById('exercise-rows').innerHTML = '';
+  const saveBar = document.getElementById('wo-save-bar');
+  if (saveBar) saveBar.style.display = 'none';
+  const feedbackDiv = document.getElementById('wo-feedback-section');
+  if (feedbackDiv) { feedbackDiv.style.display = 'none'; feedbackDiv.innerHTML = ''; }
+  window._currentWorkoutPlan = null;
 }
 
 // ── EXERCISE LIBRARY ────────────────────────────────────────────────
@@ -2208,26 +2185,13 @@ function generateWorkout() {
   renderWorkoutPlan(plan, phaseInfo);
 
   document.getElementById('wo-type').value = plan.title;
-  document.getElementById('exercise-rows').innerHTML = '';
-  plan.exercises.forEach(ex => {
-    const row = document.createElement('div');
-    row.className = 'exercise-row';
-    const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d, ex.weightRec);
-    const suggestedWeight = weightRec && !weightRec.isBW ? weightRec.lbs : '';
-    row.innerHTML = `
-      <div><label>Exercise</label><input type="text" value="${ex.name}" class="ex-name ex-name-input"></div>
-      <div class="ex-row-bottom">
-        <div><label>Sets</label><input type="number" value="${ex.sets}" class="ex-sets" min="1"></div>
-        <div><label>Reps</label><input type="text" value="${ex.reps}" class="ex-reps"></div>
-        <div><label>Weight</label><input type="text" value="${suggestedWeight}" placeholder="lbs" class="ex-weight"></div>
-        <button class="btn btn-danger" style="margin-top:16px" onclick="this.closest('.exercise-row').remove()">✕</button>
-      </div>
-    `;
-    document.getElementById('exercise-rows').appendChild(row);
-  });
+  // Store plan for saving — no table needed
+  window._currentWorkoutPlan = plan;
+  window._currentWorkoutDate = localDateStr();
 
   document.getElementById('wo-questions').style.display = 'none';
   document.getElementById('wo-plan').style.display = 'block';
+  document.getElementById('wo-save-bar').style.display = 'block';
   } catch(err) {
     console.error('generateWorkout error:', err);
     alert('Workout generation error: ' + err.message + '\n\nCheck console for details.');
@@ -2275,11 +2239,12 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       note: 'Lunge pattern builds single-leg stability critical for golf stance and archery draw position. Harder than it looks — control is everything.',
       gym: [
         { ...E.leg_press, reps:'15', sets:4 },
-        { name:'Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee tracks over toe, control descent. Builds the single-leg stability of your golf backswing.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        { name:'Lateral Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DB', rest:75, tip:'Step wide to the side, sit into the hip, drive back. Trains the lateral movement pattern used in golf footwork.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        E.glute_bridge,
+        { name:'Smith Machine Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'45 lbs', rest:75, tip:'Bar on back, step back into lunge. Smith machine keeps the bar path controlled — better for learning than free weight.', weightRec:{ phase1:35, phase2:45, phase3:65, machine:true, unit:'lb' } },
+        { name:'Leg Extension Machine', cat:'legs', loc:GYM, sets:3, reps:'15', weight:'60 lbs', rest:60, tip:'Full extension, hold 1 second at top. Isolates quad — harder to train with home equipment.', weightRec:{ phase1:50, phase2:60, phase3:80, machine:true, unit:'lb' } },
+        E.hip_thrust,
         E.pallof_press,
         E.dead_bug,
+        E.bird_dog,
       ],
       home: [
         E.goblet_squat,
@@ -2295,8 +2260,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       label: 'Power & Athletic Development',
       note: 'Explosive movements build the fast-twitch power that drives golf distance. Controlled on the way down, explosive on the way up.',
       gym: [
-        { name:'Box Step-Up', cat:'legs', loc:GYM, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'GOLF: Explosive drive through the heel mirrors the push from the ground in the downswing. Step up fast, lower slow.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        { name:'Sumo Squat to Stand', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging, squat deep, stand explosively. Hip mobility and power combined.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        { name:'Hack Squat Machine', cat:'legs', loc:GYM, sets:4, reps:'10', weight:'90 lbs', rest:90, tip:'Feet shoulder width, deep range of motion. Machine-guided path removes balance demand — lets you focus on loading the quad.', weightRec:{ phase1:70, phase2:90, phase3:120, machine:true, unit:'lb' } },
+        { name:'Leg Curl Machine', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'50 lbs', rest:75, tip:'Curl smoothly, hold 1 second at top. Hamstring isolation — impossible to replicate at home without equipment.', weightRec:{ phase1:40, phase2:50, phase3:70, machine:true, unit:'lb' } },
         E.hip_thrust,
         E.single_leg_rdl,
         E.pallof_press,
@@ -2318,10 +2283,11 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       label: 'Conditioning Circuit',
       note: 'Higher reps, shorter rest, elevated heart rate throughout. Burns more calories than standard strength work. You will be breathing hard. That is the point.',
       gym: [
-        { name:'Leg Press High Rep', cat:'legs', loc:GYM, sets:4, reps:'20', weight:'70 lbs', rest:60, tip:'Lighter weight, more reps, shorter rest. Metabolic conditioning — heart rate elevated the whole time.', weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
-        { name:'Walking Lunge', cat:'legs', loc:GYM, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement, no pausing. More aerobic demand than static lunges.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'Leg Press High Rep', cat:'legs', loc:GYM, sets:4, reps:'20', weight:'70 lbs', rest:60, tip:'Shorter rest, higher reps. Metabolic conditioning — heart rate elevated throughout.', weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
+        { name:'Leg Extension Machine', cat:'legs', loc:GYM, sets:3, reps:'20', weight:'50 lbs', rest:45, tip:'High rep burnout on quads. Short rest. This is conditioning not strength work.', weightRec:{ phase1:40, phase2:50, phase3:65, machine:true, unit:'lb' } },
+        { name:'Leg Curl Machine', cat:'legs', loc:GYM, sets:3, reps:'20', weight:'40 lbs', rest:45, tip:'Hamstring burnout to match quads. Balanced development.', weightRec:{ phase1:30, phase2:40, phase3:55, machine:true, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
-        E.kb_farmer_carry,
+        E.pallof_press,
         { ...E.plank, reps:'50 sec', sets:3 },
         E.dead_bug,
       ],
@@ -2340,10 +2306,10 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
   let exercises = isGym ? [...v.gym] : [...v.home];
 
   // Scale exercise count to time
-  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:2}));
-  else if (mins <= 30) exercises = exercises.slice(0,5);
-  else if (mins <= 45) exercises = exercises.slice(0,7);
-  // 60+ gets full list
+  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
+  else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
+  else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
 
   return {
     title: 'Day A — ' + v.label,
@@ -2441,8 +2407,9 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   let exercises = isGym ? [...v.gym] : [...v.home];
 
   if (mins <= 20) exercises = exercises.slice(0,3);
-  else if (mins <= 30) exercises = exercises.slice(0,4);
+  else if (mins <= 30) exercises = exercises.slice(0,5);
   else if (mins <= 45) exercises = exercises.slice(0,6);
+  else exercises = exercises; // 60+ full list
 
   return {
     title: 'Day B — ' + v.label,
@@ -2572,10 +2539,10 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:2}));
-  else if (mins <= 30) exercises = exercises.slice(0,5);
-  else if (mins <= 45) exercises = exercises.slice(0,8);
-  // 60+ gets full list
+  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
+  else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
+  else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
 
   return {
     title: 'Day C — ' + v.label,
@@ -2776,6 +2743,66 @@ function swapExercise(blockId, currentName, swapIndex) {
   showToast('Swapped to ' + altName);
 }
 
+// What to do during rest — keeps you active without compromising recovery
+function getBetweenSetActivity(exerciseName, cat) {
+  const activities = {
+    // Legs — stretch the muscle just worked, activate what's next
+    'Leg Press Machine':              'Hip flexor stretch — kneel, push hips forward 20 sec each side',
+    'Hack Squat Machine':             'Hip flexor stretch — lunge position, 20 sec each side',
+    'Leg Extension Machine':          'Hamstring stretch — straighten one leg, reach toward toes',
+    'Leg Curl Machine':               'Quad stretch — stand on one foot, pull heel to glutes',
+    'Single-Leg Romanian Deadlift':   'Hip circles — 10 each direction, loosen the hip joint',
+    'Goblet Squat':                   'Hip flexor stretch — deep lunge hold 20 sec each side',
+    'Hip Thrust':                     'Glute squeeze — lie flat, 10 slow glute bridges bodyweight',
+    'Glute Bridge':                   'Hip flexor stretch — lunge hold 20 sec each side',
+    'Reverse Lunge':                  'Ankle circles and calf stretch — 10 each direction',
+    'Smith Machine Reverse Lunge':    'Ankle mobility — slow circles, 10 each foot',
+    'Lateral Lunge':                  'Groin stretch — wide squat hold 20 seconds',
+    'Walking Lunge':                  'Hip flexor stretch — static lunge hold 15 sec each side',
+    'Box Step-Up':                    'Calf raises — 15 slow reps each leg on the step',
+    // Core
+    'Pallof Press':                   'Cat-cow — 10 slow reps, mobilize the spine',
+    'Pallof Press with KB':           'Cat-cow — 10 slow reps',
+    'Dead Bug':                       'Child\'s pose — arms extended, breathe into lower back 20 sec',
+    'Bird Dog':                       'Child\'s pose — arms extended, hold 20 seconds',
+    'Plank Hold':                     'Thoracic rotation — seated, rotate upper back 10 each side',
+    // Push
+    'DB Incline Press':               'Shoulder dislocates — hold band or towel, 10 slow overhead circles',
+    'DB Shoulder Press':              'Doorframe chest stretch or cross-body shoulder stretch 20 sec',
+    'Arnold Press':                   'Cross-body shoulder stretch — pull arm across chest 20 sec each',
+    'Lateral Raise':                  'Neck rolls and shoulder shrug releases — stay loose',
+    'KB Floor Press':                 'Thoracic extension — lie on foam roller or mat, arch over it',
+    // Pull
+    'Lat Pulldown':                   'Child\'s pose with arms extended — stretch the lats 20 sec',
+    'Seated Cable Row':               'Doorframe lat stretch — hold door frame, lean back 20 sec',
+    'Single-Arm DB Row':              'Thoracic rotation — seated, rotate toward worked side 10 reps',
+    'KB Bent-Over Row':               'Cat-cow — decompress the spine after hinge position',
+    'Cable Face Pull':                'Chest opener — clasp hands behind back, lift and hold 20 sec',
+    // Arms
+    'Bicep Curl with Supination':     'Wrist flexor stretch — arm extended, pull fingers back 20 sec',
+    'Hammer Curl':                    'Wrist extensor stretch — arm extended, press fingers down 20 sec',
+    'Incline DB Curl':                'Shoulder stretch — cross-body pull 20 sec each arm',
+    'Overhead Tricep Extension':      'Tricep stretch — hand behind head, pull elbow back 20 sec each',
+    'Tricep Cable Pushdown':          'Bicep stretch — arms extended behind body, palms up 15 sec',
+    'KB Overhead Tricep Extension':   'Tricep stretch — hand behind head, elbow up 20 sec each side',
+    'Wrist Curl & Extension':         'Forearm shake-out — loose wrists, 10 seconds each',
+    'Cable External Rotation':        'Pendulum swing — let arm hang, slow circles 10 each direction',
+  };
+
+  // Fallback by category
+  const fallbacks = {
+    legs:   'Hip flexor stretch — lunge position, 20 sec each side while recovering',
+    push:   'Shoulder circles and cross-body stretch — loosen what you just worked',
+    pull:   'Lat stretch — reach overhead, lean to the side 20 sec each',
+    core:   'Diaphragmatic breathing — 5 slow deep breaths, reset the core',
+    arms:   'Wrist and forearm stretch — extend arm, pull fingers back 20 sec',
+    cardio: 'Walk slowly — keep moving, don\'t sit down between intervals',
+    hinge:  'Hip flexor stretch — lunge hold 20 sec each side',
+  };
+
+  return activities[exerciseName] || fallbacks[cat] || 'Breathe, prep the next exercise, adjust the weight';
+}
+
 function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
   const weightRec = getWeightRecommendation(ex.name, phase, d, ex.weightRec);
   const isCardio = ex.cat === 'cardio';
@@ -2832,14 +2859,17 @@ function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
       + '</div>';
   }
 
-  // Rest timer
+  // Rest timer with between-set instruction
   let restHtml = '';
   if (ex.rest > 0) {
+    const betweenSet = getBetweenSetActivity(ex.name, ex.cat);
     restHtml = '<div style="padding:8px 14px;border-top:1px solid var(--border)">'
       + '<button id="rest-btn-' + i + '" onclick="startRestTimer(' + ex.rest + ', this)" '
       + 'style="width:100%;background:rgba(59,130,246,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s">'
       + '⏱ Start ' + ex.rest + 's rest timer'
-      + '</button></div>';
+      + '</button>'
+      + (betweenSet ? '<div style="font-size:11px;color:var(--muted);margin-top:6px;padding:0 2px">During rest: ' + betweenSet + '</div>' : '')
+      + '</div>';
   }
 
   // Tip
@@ -2905,33 +2935,53 @@ function toggleExDone(blockId, i) {
 
 
 function saveWorkout() {
-  const d = getData();
-  const date = document.getElementById('wo-date').value;
-  const type = document.getElementById('wo-type').value;
-  const notes = document.getElementById('wo-notes').value;
+  const plan = window._currentWorkoutPlan;
+  if (!plan) { alert('Generate a workout first.'); return; }
 
-  const exercises = [];
-  document.querySelectorAll('.exercise-row').forEach(row => {
-    const name = row.querySelector('.ex-name').value.trim();
-    if (name) {
-      exercises.push({
-        name,
-        sets: row.querySelector('.ex-sets').value,
-        reps: row.querySelector('.ex-reps').value,
-        weight: row.querySelector('.ex-weight').value
-      });
-    }
+  const d = getData();
+  const date = window._currentWorkoutDate || localDateStr();
+
+  // Capture exercises from the plan + any feedback already tapped
+  const exercises = plan.exercises.map(ex => {
+    const weightRec = getWeightRecommendation(ex.name, 1, d, ex.weightRec);
+    return {
+      name: ex.name,
+      sets: ex.sets,
+      reps: ex.reps,
+      weight: weightRec && !weightRec.isBW ? String(weightRec.lbs) : 'bw',
+      feedback: null // filled in by feedback buttons after save
+    };
   });
 
-  if (!exercises.length) { alert('Add at least one exercise.'); return; }
-
-  d.workoutLogs.push({ date, type, exercises, notes, timestamp: Date.now() });
+  d.workoutLogs.push({
+    date,
+    type: plan.title,
+    exercises,
+    notes: '',
+    timestamp: Date.now()
+  });
   saveDataSync(d);
 
-  document.getElementById('wo-notes').value = '';
+  // Keep plan visible so feedback buttons still work
+  // Just hide the save bar and show a done prompt
+  document.getElementById('wo-save-bar').style.display = 'none';
+
+  const feedbackDiv = document.getElementById('wo-feedback-section');
+  feedbackDiv.style.display = 'block';
+  feedbackDiv.innerHTML = '<div class="card" style="border-color:var(--green)">'
+    + '<div style="font-size:14px;font-weight:700;color:var(--green);margin-bottom:8px">✅ Saved — rate each exercise above</div>'
+    + '<div style="font-size:13px;color:var(--muted);margin-bottom:14px">Scroll up and tap ▼ Easier / → Same / ▲ Harder on each exercise. Your next session adjusts automatically.</div>'
+    + '<button class="btn btn-primary" style="width:100%" onclick="finishWorkout()">Done ✓</button>'
+    + '</div>';
+
+  renderWorkoutHistory();
+  showToast('Workout saved! Rate exercises above 💪');
+}
+
+function finishWorkout() {
+  window._currentWorkoutPlan = null;
   resetWorkoutPlanner();
   renderAll();
-  showToast('Workout saved! 💪');
 }
 
 function renderWorkoutHistory() {
