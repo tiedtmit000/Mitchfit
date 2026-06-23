@@ -2748,7 +2748,7 @@ function swapExercise(blockId, currentName, swapIndex) {
   showToast('Swapped to ' + altName);
 }
 
-function renderExerciseBlock(ex, i, phase, d) {
+function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
   const weightRec = getWeightRecommendation(ex.name, phase, d, ex.weightRec);
   const isCardio = ex.cat === 'cardio';
   const isBW = weightRec && weightRec.isBW;
