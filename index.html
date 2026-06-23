@@ -1895,13 +1895,34 @@ const EXERCISES = {
     tip:'Drive knees up, pump arms. Low impact cardio filler.',
     weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
 
-  // Core on cardio day
+  // ── DAY B CORE — Anti-extension under load, conditioning-based
+  // None of these appear in Day A or Day C
   plank:            { name:'Plank Hold', cat:'core', loc:BOTH, sets:3, reps:'40 sec', weight:'bodyweight', rest:45,
-    tip:'Forearms down, squeeze glutes and abs simultaneously. If you can hold for 60 seconds easily, elevate feet or add weight plate on back.',
+    tip:'Forearms down, squeeze glutes and abs simultaneously. Anti-extension core — completely different stimulus from Day A rotational work. If you can hold 60s easily, elevate feet or add a plate.',
     weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
 
+  cable_crunch:     { name:'Cable Crunch', cat:'core', loc:GYM, sets:3, reps:'15', weight:'50 lbs', rest:60,
+    tip:'Rope at high pulley. Kneel, pull rope to ears, crunch elbows to knees — flex the abs, do not pull with arms. Only loaded ab exercise that progressively overloads. The abs are a muscle — train them like one.',
+    weightRec:{ phase1:40, phase2:50, phase3:70, machine:true, unit:'lb' } },
+
+  ab_wheel:         { name:'Ab Wheel Rollout', cat:'core', loc:BOTH, sets:3, reps:'8', weight:'bodyweight', rest:60,
+    tip:'From knees. Roll out until hips nearly drop, pull back in with abs — not hips. Hardest anti-extension movement you can do. If too hard: shorten range of motion. GOLF: The eccentric control here directly trains the deceleration phase of a swing.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  hollow_hold:      { name:'Hollow Body Hold', cat:'core', loc:BOTH, sets:3, reps:'30 sec', weight:'bodyweight', rest:45,
+    tip:'Flat back pressed into floor, arms overhead, legs raised 6 inches. Every muscle on the front of your body fires simultaneously. Progress by lowering legs closer to floor. This is gymnast-level core work.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  landmine_rotation:{ name:'Landmine Rotation', cat:'core', loc:GYM, sets:3, reps:'10 each side', weight:'25 lbs', rest:60,
+    tip:'GOLF TRANSFER: Bar in corner or landmine attachment. Hold end with both hands, rotate hip to hip in a golf swing arc. The only exercise that trains rotational power under load in the exact plane of a golf swing. Keep arms straight, power comes from hips.',
+    weightRec:{ phase1:20, phase2:25, phase3:35, machine:true, unit:'lb' } },
+
+  suitcase_carry:   { name:'Suitcase Carry (1-arm)', cat:'core', loc:BOTH, sets:3, reps:'40 steps each side', weight:'35lb KB', rest:60,
+    tip:'Single KB at side. Walk tall and resist the lean — the anti-lateral flexion demand is the entire point. Obliques, QL, and hip stabilizers all fire to keep you upright. Completely different from two-arm farmer carry.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
   glute_bridge:     { name:'Glute Bridge', cat:'core', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:45,
-    tip:'KB on hips, upper back on bench or floor, drive hips up explosively, squeeze glutes at top for 1 second. On strength days this is a loaded movement — do not skip the weight.',
+    tip:'KB on hips, drive hips up explosively, squeeze glutes at top for 1 second. On Day B this is a conditioning finisher — not the primary hip hinge work you do on Day A.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   // ── DAY C: UPPER BODY + ARMS
@@ -1977,6 +1998,18 @@ const EXERCISES = {
   wrist_curl:       { name:'Wrist Curl & Extension', cat:'arms', loc:BOTH, sets:2, reps:'15 each direction', weight:'15lb DB', rest:30,
     tip:'GOLF/ARCHERY: Forearms on thighs, curl wrists up then reverse. Wrist stability is the difference between consistent ball striking and flipping at impact. Also prevents the common archer elbow issue. You already have thick forearms — this is maintenance.',
     weightRec:{ phase1:10, phase2:15, phase3:15, machine:false, unit:'lb' } },
+
+  // ── DAY A GYM CORE — Standing loaded, Option B replacements for floor work
+  // These replace dead_bug / bird_dog on gym workouts only
+  // Home workouts retain floor work as the correct substitute
+
+  cable_pullthrough: { name:'Cable Pull-Through', cat:'hinge', loc:GYM, sets:3, reps:'12', weight:'50 lbs', rest:75,
+    tip:'Rope at low pulley between legs. Hinge at hip, let rope pull back between legs, drive hips forward to stand. This is the hip hinge pattern under load — trains the posterior chain in the exact movement that generates golf power. Keep back flat, knees soft, power from glutes not lower back.',
+    weightRec:{ phase1:40, phase2:50, phase3:65, machine:true, unit:'lb' } },
+
+  landmine_deadlift: { name:'Landmine Deadlift', cat:'hinge', loc:GYM, sets:3, reps:'10', weight:'45 lbs', rest:90,
+    tip:'Bar in landmine or corner. Stand over end, hinge back and grip with both hands, drive through floor to stand. The angled bar path is more forgiving on the lower back than a conventional deadlift and requires significant anti-rotation core engagement to stay square. GOLF: The asymmetric loading trains the obliques to resist rotation — the same demand as the deceleration phase of a swing.',
+    weightRec:{ phase1:35, phase2:45, phase3:65, machine:true, unit:'lb' } },
 
   // ROTATOR CUFF (Archery essential)
   band_rotation:    { name:'Cable External Rotation', cat:'arms', loc:GYM, sets:2, reps:'15 each side', weight:'10 lbs', rest:30,
@@ -2207,18 +2240,28 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
   const E = EXERCISES;
   const { phase } = phaseInfo;
 
-  // Phase 1 is always the same intro regardless of variant
+  // Phase 1 — intro phase
+  // Gym: standing loaded core from day one — cable pull-through reinforces the hinge pattern
+  // Home: floor work is the correct substitute without cable equipment
   if (phase === 1) {
-    const exercises = [
-      E.goblet_squat, E.single_leg_rdl, E.hip_thrust, E.dead_bug, E.bird_dog
-    ].map(e => scaleForPhase(e, 1));
+    const exercises = isGym
+      ? [
+          E.goblet_squat, E.single_leg_rdl, E.hip_thrust,
+          E.cable_pullthrough, E.pallof_press
+        ].map(e => scaleForPhase(e, 1))
+      : [
+          E.goblet_squat, E.single_leg_rdl, E.hip_thrust,
+          E.dead_bug, E.bird_dog
+        ].map(e => scaleForPhase(e, 1));
     return {
       title: 'Day A — Lower Body + Core',
       type: 'Strength A (Day A)',
       focus: 'Legs · Glutes · Core · Golf/Archery',
       calBurn: '150-220',
       exercises,
-      notes: 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Learn the hip hinge on single-leg RDL — it is the foundation of your golf power.',
+      notes: isGym
+        ? 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Cable pull-through locks in the hip hinge pattern under load — the foundation of every lower body movement here.'
+        : 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Learn the hip hinge on single-leg RDL. Dead bug and bird dog build the lumbar stability that carries everything else.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
@@ -2228,22 +2271,22 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
     // VARIANT 1: Hip Hinge Focus — most golf transfer
     1: {
       label: 'Hip Hinge & Glute Focus',
-      note: 'Posterior chain emphasis — glutes, hamstrings, hinge pattern. Most transferable to golf swing power. Rest 90s on loaded movements.',
-      gym: [E.leg_press, E.single_leg_rdl, E.hip_thrust, E.pallof_press, E.dead_bug, E.bird_dog, E.plank],
-      home: [E.goblet_squat, E.single_leg_rdl, E.hip_thrust, E.pallof_press_home, E.dead_bug, E.bird_dog, E.plank],
+      note: 'Posterior chain emphasis — glutes, hamstrings, hinge pattern. Gym: cable pull-through and landmine deadlift replace floor correctives — same stabilizers trained standing and loaded. Home: dead bug and bird dog are the correct floor substitutes without cable equipment.',
+      gym: [E.leg_press, E.single_leg_rdl, E.hip_thrust, E.pallof_press, E.cable_pullthrough, E.landmine_deadlift],
+      home: [E.goblet_squat, E.single_leg_rdl, E.hip_thrust, E.pallof_press_home, E.dead_bug, E.bird_dog],
     },
     // VARIANT 2: Quad & Lunge Focus — single leg stability
     2: {
       label: 'Quad Strength & Balance',
-      note: 'Lunge pattern builds single-leg stability critical for golf stance and archery draw position. Harder than it looks — control is everything.',
+      note: 'Lunge pattern builds single-leg stability critical for golf stance and archery draw position. Gym: landmine deadlift trains anti-rotation under load — harder than any floor corrective. Home: dead bug and glute bridge are the correct substitutes.',
       gym: [
         { ...E.leg_press, reps:'15', sets:4 },
         { name:'Smith Machine Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'45 lbs', rest:75, tip:'Bar on back, step back into lunge. Smith machine keeps the bar path controlled — better for learning than free weight.', weightRec:{ phase1:35, phase2:45, phase3:65, machine:true, unit:'lb' } },
         { name:'Leg Extension Machine', cat:'legs', loc:GYM, sets:3, reps:'15', weight:'60 lbs', rest:60, tip:'Full extension, hold 1 second at top. Isolates quad — harder to train with home equipment.', weightRec:{ phase1:50, phase2:60, phase3:80, machine:true, unit:'lb' } },
         E.hip_thrust,
         E.pallof_press,
-        E.dead_bug,
-        E.bird_dog,
+        E.cable_pullthrough,
+        E.landmine_deadlift,
       ],
       home: [
         E.goblet_squat,
@@ -2257,15 +2300,15 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
     // VARIANT 3: Power & Explosiveness — athletic development
     3: {
       label: 'Power & Athletic Development',
-      note: 'Explosive movements build the fast-twitch power that drives golf distance. Controlled on the way down, explosive on the way up.',
+      note: 'Explosive movements build the fast-twitch power that drives golf distance. Gym: cable pull-through and landmine deadlift cap the session with standing loaded core. Home: bird dog and dead bug are retained as the correct floor substitutes.',
       gym: [
         { name:'Hack Squat Machine', cat:'legs', loc:GYM, sets:4, reps:'10', weight:'90 lbs', rest:90, tip:'Feet shoulder width, deep range of motion. Machine-guided path removes balance demand — lets you focus on loading the quad.', weightRec:{ phase1:70, phase2:90, phase3:120, machine:true, unit:'lb' } },
         { name:'Leg Curl Machine', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'50 lbs', rest:75, tip:'Curl smoothly, hold 1 second at top. Hamstring isolation — impossible to replicate at home without equipment.', weightRec:{ phase1:40, phase2:50, phase3:70, machine:true, unit:'lb' } },
         E.hip_thrust,
         E.single_leg_rdl,
         E.pallof_press,
-        E.bird_dog,
-        E.dead_bug,
+        E.cable_pullthrough,
+        E.landmine_deadlift,
       ],
       home: [
         { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'bodyweight', rest:90, tip:'Use a sturdy chair or step. Explosive drive up, slow on the way down.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
@@ -2280,23 +2323,23 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
     // VARIANT 4: High Rep Conditioning — fat loss accelerator
     4: {
       label: 'Conditioning Circuit',
-      note: 'Higher reps, shorter rest, elevated heart rate throughout. Burns more calories than standard strength work. You will be breathing hard. That is the point.',
+      note: 'Higher reps, shorter rest, elevated heart rate throughout. Gym: cable pull-through and landmine deadlift keep the intensity up through the core finisher — no lying down. Home: dead bug and bird dog are the floor substitutes.',
       gym: [
         { name:'Leg Press High Rep', cat:'legs', loc:GYM, sets:4, reps:'20', weight:'70 lbs', rest:60, tip:'Shorter rest, higher reps. Metabolic conditioning — heart rate elevated throughout.', weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
         { name:'Leg Extension Machine', cat:'legs', loc:GYM, sets:3, reps:'20', weight:'50 lbs', rest:45, tip:'High rep burnout on quads. Short rest. This is conditioning not strength work.', weightRec:{ phase1:40, phase2:50, phase3:65, machine:true, unit:'lb' } },
         { name:'Leg Curl Machine', cat:'legs', loc:GYM, sets:3, reps:'20', weight:'40 lbs', rest:45, tip:'Hamstring burnout to match quads. Balanced development.', weightRec:{ phase1:30, phase2:40, phase3:55, machine:true, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
         E.pallof_press,
-        { ...E.plank, reps:'50 sec', sets:3 },
-        E.dead_bug,
+        { ...E.cable_pullthrough, sets:3 },
+        { ...E.landmine_deadlift, sets:3 },
       ],
       home: [
         { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         { name:'Walking Lunge', cat:'legs', loc:HOME, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement forward. More aerobic than static lunges.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
-        E.kb_farmer_carry,
-        { ...E.plank, reps:'50 sec', sets:3 },
-        E.dead_bug,
+        { ...E.dead_bug, sets:3 },
+        { ...E.bird_dog, sets:3 },
+        E.pallof_press_home,
       ],
     },
   };
@@ -2334,16 +2377,16 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       ? [
           { ...E.treadmill_walk, reps:'15 min', sets:1 },
           { ...E.plank, sets:3 },
-          { ...E.glute_bridge, sets:3 },
-          { ...E.dead_bug, sets:3 },
-          { ...E.bird_dog, sets:3 },
+          { ...E.hollow_hold, sets:3 },
+          { ...E.cable_crunch, sets:3 },
+          { ...E.kb_farmer_carry, sets:3 },
         ]
       : [
           { ...E.kb_swing, sets:3 },
           { ...E.kb_farmer_carry, sets:3 },
           { ...E.march_in_place, sets:3 },
           { ...E.plank, sets:3 },
-          { ...E.dead_bug, sets:3 },
+          { ...E.hollow_hold, sets:3 },
         ];
     return {
       title: 'Day B — Cardio + Core',
@@ -2351,7 +2394,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       focus: 'Fat Burn · Heart Rate · Core',
       calBurn: '150-220',
       exercises,
-      notes: 'Intro cardio phase. Treadmill sets the aerobic base, then core work builds the foundation. Do not rush the core exercises — quality over speed.',
+      notes: 'Intro cardio. Core work here is anti-extension only — plank and hollow hold. Dead bug and bird dog stay on Day A where they belong.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
@@ -2360,56 +2403,99 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   const cardioMins = Math.max(15, mins - 10);
 
   const variants = {
-    // VARIANT 1: Steady State — fat oxidation focus
+    // VARIANT 1: Steady State + Loaded Core
+    // Gym uses cable crunch + suitcase carry — cannot replicate at home
+    // Home uses ab wheel + hollow hold
     1: {
-      label: 'Steady State Cardio',
-      note: 'Sustained moderate intensity. Stays in the fat-burning zone. The most efficient calorie burn per unit of joint stress at your current weight.',
-      gym: [ { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 }, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge, E.pallof_press, E.hip_thrust ],
-      home: [ { ...E.kb_swing, sets:5 }, E.kb_farmer_carry, E.march_in_place, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge ],
-    },
-    // VARIANT 2: Cross Training — multiple machines
-    2: {
-      label: 'Cross Training',
-      note: 'Alternating between machines reduces joint fatigue and hits different muscles. Rower is direct archery training. Keep transitions under 60 seconds.',
+      label: 'Steady State + Loaded Core',
+      note: 'Sustained fat-burn cardio followed by loaded core work. Cable crunch is the only ab exercise that progressively overloads like a muscle. Suitcase carry trains the obliques and QL harder than any crunch variation.',
       gym: [
-        { ...E.treadmill_walk, reps: Math.round(cardioMins * 0.45) + ' min', sets:1 },
-        { ...E.rowing_machine, reps: Math.round(cardioMins * 0.35) + ' min', sets:1 },
-        { ...E.stationary_bike, reps: Math.round(cardioMins * 0.2) + ' min', sets:1 },
-        E.plank, E.dead_bug,
-      ],
-      home: [ { ...E.kb_swing, sets:4 }, E.kb_farmer_carry, { ...E.march_in_place, sets:4 }, E.plank, E.dead_bug, E.bird_dog ],
-    },
-    // VARIANT 3: Interval Training — metabolic spike
-    3: {
-      label: 'Interval Conditioning',
-      note: 'Intervals spike your metabolic rate for hours after the session — called EPOC. 2 min moderate then 1 min harder, repeat. More fat burned in less time than steady state.',
-      gym: [
-        { name:'Treadmill Intervals', cat:'cardio', loc:GYM, sets:6, reps:'2 min easy / 1 min harder', weight:'3.5mph flat then 4mph 6% incline', rest:0, tip:'2 minutes at 3.5mph / 4% incline. Then 1 minute at 4mph / 6% incline. Repeat 6 rounds. Do not run — incline is the intensity lever.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
-        E.plank, E.dead_bug, E.glute_bridge,
+        { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 },
+        E.cable_crunch,
+        E.suitcase_carry,
+        E.landmine_rotation,
+        E.plank,
+        E.hollow_hold,
+        E.ab_wheel,
       ],
       home: [
-        { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is genuinely hard. That is what intervals are supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        E.kb_farmer_carry, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge,
+        { ...E.kb_swing, sets:5 },
+        E.kb_farmer_carry,
+        E.suitcase_carry,
+        E.ab_wheel,
+        E.hollow_hold,
+        E.plank,
+        E.march_in_place,
       ],
     },
-    // VARIANT 4: Loaded Carries & Conditioning — functional fat loss
-    4: {
-      label: 'Functional Conditioning',
-      note: 'Loaded carries and circuit work. Builds strength and cardio simultaneously. Grip, core, and conditioning in one session. The KB farmer carry is one of the highest calorie exercises per unit of time that exists.',
+    // VARIANT 2: Cross Training + Anti-Rotation Core
+    // Rower = direct archery lat/rhomboid training
+    // Landmine rotation = only loaded rotational core exercise
+    2: {
+      label: 'Cross Training + Anti-Rotation Core',
+      note: 'Machine rotation reduces joint fatigue and hits different muscles each interval. Landmine rotation is the only loaded exercise that trains core power in the exact plane of a golf swing. Keep transitions under 60 seconds.',
       gym: [
-        { ...E.treadmill_walk, reps:'15 min', sets:1 },
-        { name:'Sled Push / Rower', cat:'cardio', loc:GYM, sets:4, reps:'45 sec', weight:'moderate resistance', rest:60, tip:'If sled available: push hard for 45 sec. Otherwise: rowing machine at hard effort for 45 sec. Explosive, not sustainable.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:true, unit:'bw' } },
+        { ...E.treadmill_walk, reps: Math.round(cardioMins * 0.4) + ' min', sets:1 },
+        { ...E.rowing_machine, reps: Math.round(cardioMins * 0.35) + ' min', sets:1 },
+        { ...E.stationary_bike, reps: Math.round(cardioMins * 0.25) + ' min', sets:1 },
+        E.cable_crunch,
+        E.landmine_rotation,
+        E.suitcase_carry,
+        E.hollow_hold,
+      ],
+      home: [
+        { ...E.kb_swing, sets:4 },
         E.kb_farmer_carry,
+        { ...E.march_in_place, sets:4 },
+        E.suitcase_carry,
+        E.ab_wheel,
+        E.hollow_hold,
         E.plank,
-        E.dead_bug,
-        E.bird_dog,
+      ],
+    },
+    // VARIANT 3: Interval Conditioning + Ab Finisher
+    // Intervals first while fresh, then ab work under residual fatigue
+    3: {
+      label: 'Interval Conditioning + Ab Finisher',
+      note: 'Intervals spike metabolic rate for hours post-session (EPOC). 2 min moderate / 1 min hard, repeated. Core finisher while you are already breathing hard — that is training the abs as they actually function in sport.',
+      gym: [
+        { name:'Treadmill Intervals', cat:'cardio', loc:GYM, sets:6, reps:'2 min easy / 1 min harder', weight:'3.5mph / 4% then 4mph / 6% incline', rest:0, tip:'2 minutes at 3.5mph / 4% incline. Then 1 minute at 4mph / 6% incline. Repeat 6 rounds. Do not run — incline is the intensity lever.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+        E.cable_crunch,
+        E.ab_wheel,
+        E.landmine_rotation,
+        E.hollow_hold,
+      ],
+      home: [
+        { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is what conditioning is supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        E.suitcase_carry,
+        E.ab_wheel,
+        E.hollow_hold,
+        E.plank,
+        E.kb_farmer_carry,
+      ],
+    },
+    // VARIANT 4: Loaded Carries Circuit + Core
+    // Farmer carry + suitcase carry + rower = conditioning + core in one
+    4: {
+      label: 'Loaded Carries + Cable Core',
+      note: 'Loaded carries build grip, core, and conditioning simultaneously — the highest calorie-per-minute exercises that exist. Rower finisher targets the exact muscles used in archery draw. Core work here is entirely anti-extension and anti-lateral flexion — nothing you did on Day A.',
+      gym: [
+        { ...E.treadmill_walk, reps:'12 min', sets:1 },
+        { ...E.rowing_machine, reps:'8 min', sets:1 },
+        E.kb_farmer_carry,
+        E.suitcase_carry,
+        E.cable_crunch,
+        E.landmine_rotation,
+        E.ab_wheel,
       ],
       home: [
         { ...E.kb_swing, sets:4, reps:'20' },
         { ...E.kb_farmer_carry, sets:5, reps:'50 steps' },
-        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Total body — burns more calories than almost any exercise.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        E.suitcase_carry,
+        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Core braces hard the entire set — total body conditioning.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        E.ab_wheel,
+        E.hollow_hold,
         E.plank,
-        E.dead_bug,
       ],
     },
   };
