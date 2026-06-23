@@ -1865,7 +1865,7 @@ const EXERCISES = {
 
   hip_thrust:       { name:'Hip Thrust', cat:'legs', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:75,
     tip:'Upper back on bench, drive through heels, squeeze glutes hard at top for 1 second. Glutes are the primary power source for both golf distance and archery stability. Most undertrained muscle in sedentary men.',
-    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   pallof_press:     { name:'Pallof Press', cat:'core', loc:GYM, sets:3, reps:'12 each side', weight:'20 lbs', rest:60,
     tip:'GOLF/ARCHERY TRANSFER: Stand sideways to cable, press straight out and hold 2 seconds. Trains anti-rotation — your ability to resist lateral sway. This directly improves golf consistency and archery draw stability. Non-negotiable.',
@@ -1919,9 +1919,9 @@ const EXERCISES = {
     tip:'Forearms down, squeeze glutes and abs simultaneously. If you can hold for 60 seconds easily, elevate feet or add weight plate on back.',
     weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
 
-  glute_bridge:     { name:'Glute Bridge', cat:'core', loc:BOTH, sets:3, reps:'20', weight:'bodyweight', rest:40,
-    tip:'Squeeze glutes at top. On cardio day this is activation and recovery work, not loading.',
-    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+  glute_bridge:     { name:'Glute Bridge', cat:'core', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:45,
+    tip:'KB on hips, upper back on bench or floor, drive hips up explosively, squeeze glutes at top for 1 second. On strength days this is a loaded movement — do not skip the weight.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   // ── DAY C: UPPER BODY + ARMS
   // Compound push/pull first, then dedicated arm work at the end
@@ -2313,8 +2313,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
 
   // Scale exercise count to time
   if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:2}));
-  else if (mins <= 30) exercises = exercises.slice(0,4);
-  else if (mins <= 45) exercises = exercises.slice(0,6);
+  else if (mins <= 30) exercises = exercises.slice(0,5);
+  else if (mins <= 45) exercises = exercises.slice(0,7);
   // 60+ gets full list
 
   return {
@@ -2414,7 +2414,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
 
   if (mins <= 20) exercises = exercises.slice(0,3);
   else if (mins <= 30) exercises = exercises.slice(0,4);
-  else if (mins <= 45) exercises = exercises.slice(0,5);
+  else if (mins <= 45) exercises = exercises.slice(0,6);
 
   return {
     title: 'Day B — ' + v.label,
@@ -2544,9 +2544,9 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:2}));
   else if (mins <= 30) exercises = exercises.slice(0,5);
-  else if (mins <= 45) exercises = exercises.slice(0,7);
+  else if (mins <= 45) exercises = exercises.slice(0,8);
   // 60+ gets full list
 
   return {
@@ -2791,14 +2791,16 @@ function renderExerciseBlock(ex, i, phase, d) {
       + '</div>';
   }
 
-  // Feedback buttons
+  // Feedback buttons — show on all non-cardio exercises
+  // For bodyweight: feedback adjusts reps/difficulty next session
   let feedbackHtml = '';
-  if (!isCardio && !isBW) {
+  if (!isCardio) {
+    const label = isBW ? 'Next session (reps/difficulty):' : 'Next session (weight):';
     feedbackHtml = '<div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.1)">'
-      + '<span style="font-size:12px;color:var(--muted);align-self:center;flex:1">Next session:</span>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'down\')" style="background:rgba(239,68,68,0.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">▼ Less</button>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'hold\')" style="background:rgba(100,116,139,0.15);border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">→ Same</button>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'up\')" style="background:rgba(34,197,94,0.15);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">▲ More</button>'
+      + '<span style="font-size:11px;color:var(--muted);align-self:center;flex:1">' + label + '</span>'
+      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'down\')" style="background:rgba(239,68,68,0.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">▼ Easier</button>'
+      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'hold\')" style="background:rgba(100,116,139,0.15);border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">→ Same</button>'
+      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'up\')" style="background:rgba(34,197,94,0.15);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">▲ Harder</button>'
       + '</div>';
   }
 
