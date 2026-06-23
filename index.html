@@ -2184,7 +2184,6 @@ function generateWorkout() {
 
   renderWorkoutPlan(plan, phaseInfo);
 
-  document.getElementById('wo-type').value = plan.title;
   // Store plan for saving — no table needed
   window._currentWorkoutPlan = plan;
   window._currentWorkoutDate = localDateStr();
