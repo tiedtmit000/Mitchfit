@@ -1913,6 +1913,127 @@ const EXERCISES = {
 // ── WORKOUT PLANS ────────────────────────────────────────────────────
 // Returns { title, type, focus, calBurn, exercises[], notes }
 
+// ── WEIGHT RECOMMENDATION ENGINE ─────────────────────────────────────────
+function getWeightRecommendation(exerciseName, phase, d) {
+  const exKey = Object.keys(EXERCISES).find(k => EXERCISES[k].name === exerciseName);
+  if (!exKey) return null;
+  const ex = EXERCISES[exKey];
+  if (!ex.weightRec) return null;
+  const rec = ex.weightRec;
+
+  if (rec.unit === 'bw') return { text: 'Bodyweight', lbs: 0, isBW: true };
+
+  const prevPerformance = getPreviousWeight(exerciseName, d);
+
+  if (prevPerformance) {
+    const feedback = prevPerformance.feedback || 'hold';
+    const lastWeight = prevPerformance.weight;
+    const increment = rec.kb ? 0 : 5;
+
+    if (feedback === 'up') {
+      const next = rec.kb ? getNextKBWeight(lastWeight) : lastWeight + increment;
+      return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▲', note: 'Up from ' + lastWeight + 'lbs last session' };
+    } else if (feedback === 'down') {
+      const next = Math.max(0, rec.kb ? getPrevKBWeight(lastWeight) : lastWeight - increment);
+      return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
+    } else {
+      return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '→', note: 'Same as last session' };
+    }
+  }
+
+  const startWeight = rec['phase' + phase] || rec.phase1;
+  if (startWeight === 0 && rec.bw_first) return { text: 'Bodyweight first session', lbs: 0, isBW: true, note: 'Add weight next session once form is solid' };
+  if (startWeight === 0) return { text: 'Bodyweight', lbs: 0, isBW: true };
+  const machineNote = rec.machine ? ' (adjust to how machine feels)' : '';
+  return { text: startWeight + ' lbs', lbs: startWeight, note: 'Starting weight for your stats' + machineNote };
+}
+
+function getPreviousWeight(exerciseName, d) {
+  const logs = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
+  for (const log of logs) {
+    const ex = log.exercises && log.exercises.find(e => e.name === exerciseName);
+    if (ex && ex.weight && !isNaN(parseFloat(ex.weight))) {
+      return { weight: parseFloat(ex.weight), feedback: ex.feedback || 'hold' };
+    }
+  }
+  return null;
+}
+
+function getNextKBWeight(current) {
+  if (current < 15) return 15;
+  if (current < 35) return 35;
+  return 35;
+}
+
+function getPrevKBWeight(current) {
+  if (current >= 35) return 15;
+  return 15;
+}
+
+// ── REST TIMER ───────────────────────────────────────────────────────────
+let _restTimerId = null;
+
+function startRestTimer(seconds, buttonEl) {
+  if (_restTimerId) { clearInterval(_restTimerId); _restTimerId = null; }
+  let remaining = seconds;
+  updateRestButton(buttonEl, remaining);
+  _restTimerId = setInterval(() => {
+    remaining--;
+    updateRestButton(buttonEl, remaining);
+    if (remaining <= 0) {
+      clearInterval(_restTimerId);
+      _restTimerId = null;
+      playRestDoneSound();
+      buttonEl.textContent = '✓ Done — start next set';
+      buttonEl.style.background = 'var(--green)';
+      buttonEl.style.color = 'white';
+      setTimeout(() => {
+        buttonEl.textContent = '⏱ Start ' + seconds + 's rest timer';
+        buttonEl.style.background = '';
+        buttonEl.style.color = '';
+      }, 3000);
+    }
+  }, 1000);
+}
+
+function updateRestButton(el, remaining) {
+  const mins = Math.floor(remaining / 60);
+  const secs = remaining % 60;
+  el.textContent = mins > 0 ? '⏱ ' + mins + ':' + String(secs).padStart(2,'0') + ' remaining' : '⏱ ' + remaining + 's remaining';
+  el.style.background = remaining <= 10 ? 'rgba(239,68,68,0.2)' : 'rgba(59,130,246,0.2)';
+  el.style.color = remaining <= 10 ? 'var(--red)' : 'var(--accent)';
+}
+
+function playRestDoneSound() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    [0, 0.15, 0.3].forEach((delay, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.frequency.value = 600 + (i * 150);
+      osc.type = 'sine';
+      gain.gain.setValueAtTime(0.4, ctx.currentTime + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + delay + 0.12);
+      osc.start(ctx.currentTime + delay);
+      osc.stop(ctx.currentTime + delay + 0.12);
+    });
+  } catch(e) { console.warn('Audio not available'); }
+}
+
+function setExerciseFeedback(exerciseName, feedback) {
+  const d = getData();
+  if (!d.workoutLogs.length) return;
+  const log = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+  const ex = log.exercises && log.exercises.find(e => e.name === exerciseName);
+  if (ex) {
+    ex.feedback = feedback;
+    saveDataSync(d);
+    showToast(feedback === 'up' ? '▲ More weight next session' : feedback === 'down' ? '▼ Less weight next session' : '→ Same weight next session');
+  }
+}
+
 function getNextWorkoutType(d) {
   const logs = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
   const lastType = logs[0]?.type || '';
