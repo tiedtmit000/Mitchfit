@@ -1261,15 +1261,31 @@ function learnFood(desc, cal, protein, carbs, fat) {
 }
 
 function getChecklistKey() {
-  return 'mitchfit_checklist_' + new Date().toISOString().split('T')[0];
+  return 'mitchfit_checklist_' + localDateStr();
 }
 
 // ═══════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════
 
+// Returns YYYY-MM-DD in LOCAL time — not UTC
+// toISOString() returns UTC which breaks at night in US timezones
+function localDateStr(date) {
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function localYesterday() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return localDateStr(d);
+}
+
 function init() {
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   document.getElementById('wo-date').value = today;
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
@@ -1309,8 +1325,8 @@ function renderAll() {
 
 async function checkMorningBrief() {
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
-  const yesterday = new Date(Date.now() - 864e5).toISOString().split('T')[0];
+  const today = localDateStr();
+  const yesterday = localYesterday();
 
   // Show until 7pm
   const hour = new Date().getHours();
@@ -1472,13 +1488,13 @@ const CHECKLIST_MESSAGES = [
 function getManualChecks() {
   // Read from main data cache under today's key
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   return (d.checklists && d.checklists[today]) || {};
 }
 
 function toggleManualCheck(id) {
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   if (!d.checklists) d.checklists = {};
   if (!d.checklists[today]) d.checklists[today] = {};
   d.checklists[today][id] = !d.checklists[today][id];
@@ -1489,7 +1505,7 @@ function toggleManualCheck(id) {
 
 function renderChecklist() {
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   const manual = getManualChecks();
   const el = document.getElementById('checklist-items');
   if (!el) return;
@@ -1550,7 +1566,7 @@ function switchTab(id) {
 
 function renderDashboard() {
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
 
   // Current weight
   const wLogs = d.weightLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1581,7 +1597,7 @@ function renderDashboard() {
   const allDates = [...new Set([...d.workoutLogs.map(w => w.date), ...d.foodLogs.map(f => f.date)])].sort().reverse();
   let checkDate = new Date(today);
   for (let i = 0; i < 30; i++) {
-    const ds = checkDate.toISOString().split('T')[0];
+    const ds = localDateStr(checkDate);
     if (allDates.includes(ds)) { streak++; checkDate.setDate(checkDate.getDate() - 1); }
     else break;
   }
@@ -1662,7 +1678,7 @@ function renderWeekGrid() {
   for (let i = 6; i >= 0; i--) {
     const day = new Date(today);
     day.setDate(today.getDate() - i);
-    const ds = day.toISOString().split('T')[0];
+    const ds = localDateStr(day);
     const isToday = i === 0;
     const isFuture = i < 0;
 
@@ -3194,7 +3210,7 @@ function saveFood() {
 
 function renderFoodToday() {
   const d = getData();
-  const today = new Date().toISOString().split('T')[0];
+  const today = localDateStr();
   const todayFood = d.foodLogs.filter(f => f.date === today).sort((a,b) => a.timestamp - b.timestamp);
   const el = document.getElementById('today-food-log');
 
@@ -3620,7 +3636,7 @@ async function sendCoachMessage() {
 
   // Build context
   const wLogs = [...d.weightLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
-  const todayFood = d.foodLogs.filter(f => f.date === new Date().toISOString().split('T')[0]);
+  const todayFood = d.foodLogs.filter(f => f.date === localDateStr());
   const recentWorkouts = [...d.workoutLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFood = [...d.foodLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
 
