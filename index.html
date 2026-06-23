@@ -1887,6 +1887,42 @@ const EXERCISES = {
     tip:'GOLF TRANSFER: The KB swing is the closest gym movement to a golf swing — same hip hinge, same explosive hip extension, same posterior chain. 5 rounds of 15 at 35lbs is serious cardio.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
+  // ── DAY B: POSTERIOR CHAIN + SHOULDERS
+  // Second frequency hit on hamstrings and upper back
+  // Rear delt, trap, and rhomboid work not covered by Day A or Day C
+
+  rdl:              { name:'Romanian Deadlift', cat:'hinge', loc:GYM, sets:3, reps:'10', weight:'95 lbs', rest:90,
+    tip:'Bilateral hip hinge — different from SL RDL on Day A. Bar or DBs, push hips back, feel the hamstring stretch at the bottom, drive hips forward to stand. Keep bar close to legs throughout. The RDL is the single most effective hamstring mass builder. Heavy and controlled.',
+    weightRec:{ phase1:75, phase2:95, phase3:125, machine:false, unit:'lb' } },
+
+  rdl_db:           { name:'DB Romanian Deadlift', cat:'hinge', loc:HOME, sets:3, reps:'10', weight:'35lb DBs', rest:90,
+    tip:'Both 35lb DBs, hinge back, feel the stretch, drive hips forward. Same movement as barbell RDL with the equipment you have. At home 35lb DBs are the ceiling — focus on perfect form and 3-second eccentrics to maximize stimulus.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
+
+  bent_over_row:    { name:'Barbell Bent-Over Row', cat:'pull', loc:GYM, sets:3, reps:'10', weight:'95 lbs', rest:90,
+    tip:'Hinge 45 degrees, bar off floor, pull to lower chest. This is a different movement than the cable row on Day C — free weight horizontal pull with significant erector and core demand to hold the hinge. Builds back thickness more than any machine movement. Overhand grip.',
+    weightRec:{ phase1:75, phase2:95, phase3:125, machine:false, unit:'lb' } },
+
+  rear_delt_fly:    { name:'Rear Delt Fly', cat:'pull', loc:GYM, sets:3, reps:'15', weight:'15lb DBs', rest:60,
+    tip:'Bent over 45 degrees or chest on incline bench. Light weight, arms arc wide, pinch shoulder blades at top. The rear delt is the most underdeveloped muscle on most people and the most responsible for shoulder health under pressing loads. It also creates the 3D shoulder look from the side. Never skip this.',
+    weightRec:{ phase1:10, phase2:15, phase3:20, machine:false, unit:'lb' } },
+
+  rear_delt_fly_kb: { name:'Rear Delt Fly', cat:'pull', loc:HOME, sets:3, reps:'15', weight:'15lb KBs', rest:60,
+    tip:'Bent over 45 degrees, 15lb KBs, arms arc wide, squeeze at top. Light weight is correct here — the rear delt is a small muscle. If you feel it in your traps you are going too heavy.',
+    weightRec:{ phase1:15, phase2:15, phase3:15, machine:false, unit:'lb', kb:true } },
+
+  db_shrug:         { name:'DB Shrug', cat:'pull', loc:GYM, sets:3, reps:'15', weight:'50lb DBs', rest:60,
+    tip:'Straight up, hold 1 second at top, do not roll shoulders — that is a myth that damages the AC joint. Traps create the neck-to-shoulder line that makes the upper body look powerful. Deliberately undertrained by most people.',
+    weightRec:{ phase1:35, phase2:50, phase3:65, machine:false, unit:'lb' } },
+
+  kb_shrug:         { name:'KB Shrug', cat:'pull', loc:HOME, sets:3, reps:'15', weight:'35lb KBs', rest:60,
+    tip:'Both KBs at sides, shrug straight up, hold 1 second. No rolling. 35lb is light for shrugs — focus on the contraction and high reps.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  chest_sup_row:    { name:'Chest-Supported DB Row', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'35lb DBs', rest:75,
+    tip:'Lie chest-down on incline bench, DBs hanging. Row both arms simultaneously. Removes all lower back demand — pure upper back stimulus. The chest support lets you load the lats and rhomboids harder than any bent-over variation without form breakdown.',
+    weightRec:{ phase1:25, phase2:35, phase3:45, machine:false, unit:'lb' } },
+
   kb_deadlift_hold: { name:'KB Deadlift Hold', cat:'cardio', loc:HOME, sets:3, reps:'40 sec', weight:'35lb KBs', rest:60,
     tip:'Two KBs at sides, deadlift to standing, hold tall for 40 seconds. Shoulders packed, core braced, do not let hips drift. Trains the same grip, bracing, and loaded carry stimulus as farmer carry with zero walking required. Progress by increasing hold time or adding weight.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
@@ -2176,8 +2212,8 @@ function setExerciseFeedback(exerciseName, feedback) {
 function getNextWorkoutType(d) {
   const logs = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
   const lastType = logs[0]?.type || '';
-  if (!lastType || lastType.includes('Cardio') || lastType.includes('Day B')) return 'strength_a';
-  if (lastType.includes('Day A') || lastType.includes('Strength A')) return 'cardio';
+  if (!lastType || lastType.includes('Posterior') || lastType.includes('Day B') || lastType.includes('Cardio')) return 'strength_a';
+  if (lastType.includes('Day A') || lastType.includes('Strength A')) return 'posterior';
   if (lastType.includes('Day C') || lastType.includes('Strength C')) return 'strength_a';
   return 'strength_a';
 }
@@ -2217,7 +2253,7 @@ function generateWorkout() {
   const phaseInfo = getFitnessPhase(d);
 
   let plan;
-  if (wType === 'cardio') {
+  if (wType === 'posterior') {
     const variant = getWorkoutVariant('Day B', d);
     plan = buildCardioWorkout(mins, isGym, phaseInfo, variant);
   } else if (wType === 'strength_a') {
@@ -2269,7 +2305,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
     return {
       title: 'Day A — Lower Body + Core',
       type: 'Strength A (Day A)',
-      focus: 'Legs · Glutes · Core · Golf/Archery',
+      focus: 'Quads · Hamstrings · Glutes · Core',
       calBurn: '150-220',
       exercises,
       notes: isGym
@@ -2369,7 +2405,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
   return {
     title: 'Day A — ' + v.label,
     type: 'Strength A (Day A)',
-    focus: 'Legs · Glutes · Core · Golf/Archery',
+    focus: 'Quads · Hamstrings · Glutes · Core',
     calBurn: mins <= 20 ? '220-300' : mins <= 30 ? '300-380' : mins <= 45 ? '380-460' : '460-560',
     exercises, notes: v.note,
     location: isGym ? 'Full Gym' : 'Home',
@@ -2385,124 +2421,136 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   const E = EXERCISES;
   const { phase } = phaseInfo;
 
+  // Cardio finisher duration — scales with session time, always at the end
+  const cardioMins = mins <= 20 ? 0 : mins <= 30 ? 8 : mins <= 45 ? 10 : 12;
+
+  // ── PHASE 1 ──────────────────────────────────────────────────
+  // Introduce the RDL and horizontal row pattern — the two movements
+  // that define this day. Keep volume low while learning the hinge.
   if (phase === 1) {
     const exercises = isGym
       ? [
-          { ...E.treadmill_walk, reps:'15 min', sets:1 },
-          { ...E.cable_crunch, sets:3 },
-          { ...E.hanging_leg_raise, sets:3 },
-          { ...E.landmine_rotation, sets:3 },
-          { ...E.kb_farmer_carry, sets:3 },
-        ]
+          { ...E.rdl, sets:2 },
+          { ...E.bent_over_row, sets:2 },
+          { ...E.rear_delt_fly, sets:2 },
+          { ...E.face_pull, sets:2 },
+          cardioMins > 0 ? { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 } : null,
+        ].filter(Boolean)
       : [
-          { ...E.kb_swing, sets:3 },
-          { ...E.kb_deadlift_hold, sets:3 },
-          { ...E.march_in_place, sets:3 },
-          { ...E.plank, sets:3 },
-          { ...E.hollow_hold, sets:3 },
+          { ...E.rdl_db, sets:2 },
+          { ...E.kb_row, sets:2 },
+          { ...E.rear_delt_fly_kb, sets:2 },
+          { ...E.kb_shrug, sets:2 },
         ];
     return {
-      title: 'Day B — Cardio + Core',
-      type: 'Cardio + Core (Day B)',
-      focus: 'Fat Burn · Heart Rate · Core',
-      calBurn: '150-220',
+      title: 'Day B — Posterior Chain + Shoulders',
+      type: 'Posterior Chain (Day B)',
+      focus: 'Hamstrings · Upper Back · Rear Delts · Traps',
+      calBurn: '180-260',
       exercises,
-      notes: isGym ? 'Intro cardio. Gym core: cable crunch and ab wheel — equipment-based, no floor work. Landmine rotation trains the golf swing plane from session one.' : 'Intro cardio. Home core: hollow hold and plank are the correct floor substitutes without cable equipment.',
+      notes: isGym
+        ? 'Session ' + (phaseInfo.count + 1) + ' intro phase. RDL is the bilateral hamstring builder — heavier than SL RDL, different stimulus. Bent-over row builds back thickness. 2 sets each while you lock in the hinge.'
+        : 'Session ' + (phaseInfo.count + 1) + ' intro phase. DB RDL at 35lbs — focus on the hamstring stretch, not the weight. KB row and rear delt fly set the foundation for upper back development.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
   }
 
-  const cardioMins = Math.max(15, mins - 10);
+  const cardioFinisher = cardioMins > 0
+    ? { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1, tip:'Cardio finisher — 10 min incline walk after strength work. Fat oxidation is highest in a depleted state. Do not skip this.' }
+    : null;
+
+  const rowerFinisher = cardioMins > 0
+    ? { ...E.rowing_machine, reps: cardioMins + ' min', sets:1, tip:'Rowing finisher — upper back already pumped, rower adds lat and rhomboid volume at low intensity. Archery carryover but more importantly it burns calories without taxing the CNS.' }
+    : null;
 
   const variants = {
-    // VARIANT 1: Steady State + Loaded Core
-    // Gym uses cable crunch + suitcase carry — cannot replicate at home
-    // Home uses ab wheel + hollow hold
+    // VARIANT 1: Heavy Posterior + Treadmill Finisher
+    // Barbell RDL heavy, bent-over row, rear delt fly, shrugs
     1: {
-      label: 'Steady State + Loaded Core',
-      note: 'Sustained fat-burn cardio followed by loaded core work. Cable crunch is the only ab exercise that progressively overloads like a muscle. Suitcase carry trains the obliques and QL harder than any crunch variation.',
+      label: 'Heavy Posterior Chain',
+      note: 'RDL and bent-over row are the two heaviest movements on this day. Hit them first while fresh. Rear delt fly and shrugs are isolation work — lighter, higher rep, no ego lifting. Treadmill finisher burns calories without compromising the strength work you just did.',
       gym: [
-        { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 },
-        E.cable_crunch,
-        E.suitcase_carry,
-        E.landmine_rotation,
-        E.hanging_leg_raise,
-      ],
+        E.rdl,
+        E.bent_over_row,
+        E.rear_delt_fly,
+        E.db_shrug,
+        E.face_pull,
+        cardioFinisher,
+      ].filter(Boolean),
       home: [
-        { ...E.kb_swing, sets:5 },
+        E.rdl_db,
+        E.kb_row,
+        E.rear_delt_fly_kb,
+        E.kb_shrug,
         E.kb_deadlift_hold,
-        E.single_arm_kb_dl,
-        { name:'Renegade Row', cat:'core', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up at a time. Core braces hard against rotation the entire set — this is loaded anti-rotation work, not just a row. Keep hips square.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.hollow_hold,
-        E.plank,
       ],
     },
-    // VARIANT 2: Cross Training + Anti-Rotation Core
-    // Rower = direct archery lat/rhomboid training
-    // Landmine rotation = only loaded rotational core exercise
+    // VARIANT 2: Chest-Supported Row + Rower Finisher
+    // Removes lower back demand on the row — lets you load harder
     2: {
-      label: 'Cross Training + Anti-Rotation Core',
-      note: 'Machine rotation reduces joint fatigue and hits different muscles each interval. Landmine rotation is the only loaded exercise that trains core power in the exact plane of a golf swing. Keep transitions under 60 seconds.',
+      label: 'Chest-Supported Back + Rower',
+      note: 'Chest-supported row eliminates lower back fatigue from the row — you can load heavier and feel every rep in the lats and rhomboids. Rower finisher is direct upper back volume at low intensity. Different stimulus than V1 — both are necessary.',
       gym: [
-        { ...E.treadmill_walk, reps: Math.round(cardioMins * 0.4) + ' min', sets:1 },
-        { ...E.rowing_machine, reps: Math.round(cardioMins * 0.35) + ' min', sets:1 },
-        { ...E.stationary_bike, reps: Math.round(cardioMins * 0.25) + ' min', sets:1 },
-        E.cable_crunch,
-        E.landmine_rotation,
-        E.suitcase_carry,
-        E.hanging_leg_raise,
-      ],
+        E.rdl,
+        E.chest_sup_row,
+        E.rear_delt_fly,
+        E.db_shrug,
+        E.face_pull,
+        rowerFinisher,
+      ].filter(Boolean),
       home: [
-        { ...E.kb_swing, sets:4 },
-        E.kb_deadlift_hold,
-        { ...E.march_in_place, sets:4 },
+        E.rdl_db,
+        { ...E.kb_row, tip:'3 seconds down on every rep — slow eccentric builds more mass than fast reps. This is the home substitute for chest-supported row.', reps:'12 slow' },
+        E.rear_delt_fly_kb,
+        E.kb_shrug,
         E.single_arm_kb_dl,
-        E.hollow_hold,
         E.plank,
       ],
     },
-    // VARIANT 3: Interval Conditioning + Ab Finisher
-    // Intervals first while fresh, then ab work under residual fatigue
+    // VARIANT 3: Tempo + High-Volume Rear Delt
+    // Slow eccentrics on RDL and row, extra rear delt sets
     3: {
-      label: 'Interval Conditioning + Ab Finisher',
-      note: 'Intervals spike metabolic rate for hours post-session (EPOC). 2 min moderate / 1 min hard, repeated. Core finisher while you are already breathing hard — that is training the abs as they actually function in sport.',
+      label: 'Tempo Posterior + Rear Delt Volume',
+      note: 'Slow eccentrics (3 sec down) on RDL and row creates more mechanical tension than standard tempo — same weight, more stimulus. Rear delt gets extra volume here because it is the most underdeveloped muscle in most physiques and responds well to frequency spikes.',
       gym: [
-        { name:'Treadmill Intervals', cat:'cardio', loc:GYM, sets:6, reps:'2 min easy / 1 min harder', weight:'3.5mph / 4% then 4mph / 6% incline', rest:0, tip:'2 minutes at 3.5mph / 4% incline. Then 1 minute at 4mph / 6% incline. Repeat 6 rounds. Do not run — incline is the intensity lever.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
-        E.cable_crunch,
-        E.hanging_leg_raise,
-        E.landmine_rotation,
-        E.suitcase_carry,
-      ],
+        { ...E.rdl, tip:'3 seconds down, feel every inch of the hamstring stretch. Drive hips forward explosively on the concentric. Same weight as V1 but harder.', reps:'10 slow' },
+        E.bent_over_row,
+        { ...E.rear_delt_fly, sets:4, tip:'Extra volume today. 15 reps, squeeze hard at top, 4 sets. The rear delt responds to frequency and volume. This is the set that builds the 3D shoulder look.' },
+        E.face_pull,
+        E.db_shrug,
+        rowerFinisher,
+      ].filter(Boolean),
       home: [
-        { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is what conditioning is supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        E.single_arm_kb_dl,
+        { ...E.rdl_db, tip:'3 seconds down on every rep. At 35lbs the slow eccentric is how you make this hard enough to drive adaptation.', reps:'10 slow' },
+        { ...E.kb_row, tip:'3 seconds down, full stretch at bottom, explosive pull. Same slow eccentric principle.', reps:'12 slow' },
+        { ...E.rear_delt_fly_kb, sets:4, tip:'Extra volume. 4 sets, 15 reps, 15lb KBs. Light and controlled.' },
+        E.kb_shrug,
         E.hollow_hold,
         E.plank,
-        E.kb_deadlift_hold,
       ],
     },
-    // VARIANT 4: Loaded Carries Circuit + Core
-    // Farmer carry + suitcase carry + rower = conditioning + core in one
+    // VARIANT 4: High Rep Conditioning + Posterior Pump
+    // Shorter rest, higher reps — metabolic stimulus with posterior chain
     4: {
-      label: 'Loaded Carries + Cable Core',
-      note: 'Loaded carries build grip, core, and conditioning simultaneously — the highest calorie-per-minute exercises that exist. Rower finisher targets the exact muscles used in archery draw. Core work here is entirely anti-extension and anti-lateral flexion — nothing you did on Day A.',
+      label: 'High Rep Posterior Pump',
+      note: 'Higher reps and shorter rest on every movement. Posterior chain responds well to metabolic stress — the pump and accumulated fatigue drive hypertrophy through a different mechanism than heavy low-rep work. Heart rate stays elevated throughout. No separate cardio finisher needed.',
       gym: [
-        { ...E.treadmill_walk, reps:'12 min', sets:1 },
-        { ...E.rowing_machine, reps:'8 min', sets:1 },
-        E.kb_farmer_carry,
-        E.suitcase_carry,
-        E.cable_crunch,
-        E.landmine_rotation,
-        E.hanging_leg_raise,
-      ],
+        { ...E.rdl, reps:'15', rest:60, tip:'Lighter than usual — 70lbs. 15 reps, 60 sec rest. Metabolic loading of the hamstrings and glutes. The accumulated fatigue across 4 sets is the stimulus.' },
+        { ...E.bent_over_row, reps:'15', rest:60, tip:'15 reps, 60 sec rest. Feel the upper back working every rep. This is conditioning for the posterior chain.' },
+        { ...E.rear_delt_fly, reps:'20', rest:45, tip:'20 reps, 45 sec rest. Rear delt responds extremely well to high reps. The pump here is significant.' },
+        { ...E.db_shrug, reps:'20', rest:45, tip:'20 reps, 45 sec rest. Trap endurance. High rep shrugs build the trap-neck line faster than heavy low-rep work.' },
+        E.face_pull,
+        cardioFinisher,
+      ].filter(Boolean),
       home: [
-        { ...E.kb_swing, sets:4, reps:'20' },
-        { ...E.kb_deadlift_hold, sets:4, reps:'40 sec' },
-        E.single_arm_kb_dl,
-        { name:'Renegade Row', cat:'core', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up at a time. Core braces hard against rotation the entire set. Keep hips square.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { ...E.rdl_db, reps:'15', rest:60, tip:'15 reps, 60 sec rest. 35lb DBs — full range, feel the hamstrings.' },
+        { ...E.kb_row, reps:'15', rest:60, tip:'15 reps each side, 60 sec rest. Keep form tight even when fatigued.' },
+        { ...E.rear_delt_fly_kb, reps:'20', rest:45, tip:'20 reps, 45 sec rest. Light and high rep — the rear delt loves this.' },
+        { ...E.kb_shrug, reps:'20', rest:45, tip:'20 reps, 45 sec rest. High rep trap work.' },
+        E.kb_deadlift_hold,
         E.hollow_hold,
-        E.plank,
       ],
     },
   };
@@ -2510,21 +2558,32 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
-  else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
-  else if (mins <= 45) exercises = exercises.slice(0,6).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
-  else exercises = exercises.map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3})); // 60+ full list
+  // Scale to time — preserve cardio finisher position (always last)
+  if (mins <= 20) {
+    exercises = exercises.filter(e => e.cat !== 'cardio').slice(0,3).map(e=>({...e,sets:3}));
+  } else if (mins <= 30) {
+    const cardio = exercises.filter(e => e.cat === 'cardio');
+    const strength = exercises.filter(e => e.cat !== 'cardio').slice(0,4).map(e=>({...e,sets:3}));
+    exercises = [...strength, ...cardio];
+  } else if (mins <= 45) {
+    const cardio = exercises.filter(e => e.cat === 'cardio');
+    const strength = exercises.filter(e => e.cat !== 'cardio').slice(0,5).map(e=>({...e,sets:3}));
+    exercises = [...strength, ...cardio];
+  } else {
+    exercises = exercises.map(e => e.cat === 'cardio' ? e : {...e, sets:3});
+  }
 
   return {
     title: 'Day B — ' + v.label,
-    type: 'Cardio + Core (Day B)',
-    focus: 'Fat Burn · Heart Rate · Conditioning',
-    calBurn: mins <= 20 ? '220-310' : mins <= 30 ? '310-400' : mins <= 45 ? '400-500' : '500-620',
+    type: 'Posterior Chain (Day B)',
+    focus: 'Hamstrings · Upper Back · Rear Delts · Traps',
+    calBurn: mins <= 20 ? '240-310' : mins <= 30 ? '320-400' : mins <= 45 ? '400-500' : '490-600',
     exercises, notes: v.note,
     location: isGym ? 'Full Gym' : 'Home',
     variant
   };
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // DAY C — UPPER BODY + ARMS (4 variants)
@@ -2558,8 +2617,8 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
     1: {
       label: 'Push / Pull + Arm Blast',
       note: 'Horizontal push and pull supersetted — saves time and spikes heart rate. Arms at the end when pre-fatigued. The bicep supination curl is non-negotiable for peak development.',
-      gym: [ E.db_incline_press, E.lat_pulldown, E.db_shoulder_press, E.cable_row, E.face_pull, E.lateral_raise, E.bicep_curl, E.hammer_curl, E.cable_pushdown, E.overhead_tri_ext ],
-      home: [ E.kb_floor_press, E.kb_row, E.db_shoulder_press, E.lateral_raise_kb, E.bicep_curl, E.hammer_curl, E.kb_overhead_ext, E.overhead_tri_ext ],
+      gym: [ E.db_incline_press, E.lat_pulldown, E.db_shoulder_press, E.cable_row, E.face_pull, E.bicep_curl, E.hammer_curl, E.cable_pushdown, E.overhead_tri_ext ],
+      home: [ E.kb_floor_press, E.kb_row, E.db_shoulder_press, E.bicep_curl, E.hammer_curl, E.kb_overhead_ext, E.overhead_tri_ext ],
     },
     // VARIANT 2: Vertical Push/Pull + Superset Arms
     2: {
@@ -2570,7 +2629,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
         E.lat_pulldown,
         { name:'Arnold Press', cat:'push', loc:GYM, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads in one movement. Named after the greatest of all time.', weightRec:{ phase1:15, phase2:25, phase3:30, machine:false, unit:'lb' } },
         E.cable_row,
-        E.lateral_raise,
         E.face_pull,
         E.bicep_curl,
         E.hammer_curl,
@@ -2580,7 +2638,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
         E.db_shoulder_press,
         E.kb_row,
         { name:'Arnold Press', cat:'push', loc:HOME, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads.', weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        E.lateral_raise_kb,
         E.bicep_curl,
         E.hammer_curl,
         E.kb_overhead_ext,
@@ -2593,7 +2650,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       gym: [
         { ...E.db_incline_press, tip:'3 seconds down, pause 1 second at bottom, press up. Slower eccentric = more time under tension = more growth signal.', reps:'10 slow' },
         { ...E.lat_pulldown, tip:'3 seconds down, hold at bottom for 1 second. Your lats will fail faster than usual. That is the point.', reps:'10 slow' },
-        E.lateral_raise,
         { ...E.cable_row, tip:'Pause 2 seconds at full contraction. Squeeze shoulder blades hard.', reps:'12 with pause' },
         E.face_pull,
         { ...E.bicep_curl, tip:'3 seconds down on every rep. Forearm should burn. Full extension at bottom.', reps:'12 slow' },
@@ -2604,7 +2660,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       home: [
         { ...E.kb_floor_press, tip:'3 seconds down, pause at bottom, press up.', reps:'10 slow' },
         { ...E.db_row, tip:'3 seconds down, hold contraction for 2 seconds at top.', reps:'10 slow with pause' },
-        E.lateral_raise_kb,
         { ...E.bicep_curl, tip:'3 seconds down on every rep. Full extension at bottom.', reps:'12 slow' },
         { ...E.kb_overhead_ext, tip:'3 seconds down, full stretch behind head.', reps:'12 slow' },
         E.overhead_tri_ext,
@@ -2618,7 +2673,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       gym: [
         { ...E.db_incline_press, reps:'15', sets:4 },
         { ...E.lat_pulldown, reps:'15', sets:4 },
-        E.lateral_raise,
         E.face_pull,
         { ...E.bicep_curl, reps:'15', sets:4 },
         { name:'Incline DB Curl', cat:'arms', loc:GYM, sets:3, reps:'12', weight:'20lb DBs', rest:60, tip:'Sit on incline bench, arms hang behind body, curl up. This fully stretches the bicep at the start position — the most effective position for bicep peak development. Lower slowly.', weightRec:{ phase1:12, phase2:20, phase3:25, machine:false, unit:'lb' } },
@@ -2630,7 +2684,6 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       home: [
         { ...E.kb_floor_press, reps:'15', sets:4 },
         { ...E.kb_row, reps:'15', sets:4 },
-        E.lateral_raise_kb,
         { ...E.bicep_curl, reps:'15', sets:4 },
         { ...E.hammer_curl, reps:'15', sets:3 },
         { ...E.kb_overhead_ext, reps:'15', sets:3 },
