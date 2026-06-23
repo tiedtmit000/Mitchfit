@@ -470,33 +470,37 @@
   .day-badge.rest { background: rgba(100,116,139,0.2); color: var(--muted); }
 
   .exercise-row {
-    display: grid;
-    grid-template-columns: 1fr 80px 80px 80px 36px;
-    gap: 8px;
-    align-items: center;
-    padding: 8px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px 14px;
     border-top: 1px solid var(--border);
+  }
+
+  .exercise-row .ex-name-input {
+    width: 100%;
+    font-size: 13px;
+    font-weight: 500;
+  }
+
+  .exercise-row .ex-row-bottom {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 36px;
+    gap: 6px;
+    align-items: center;
   }
 
   .exercise-row input { padding: 6px 10px; font-size: 13px; }
-  .exercise-row label { display: none; }
-
-  .ex-header {
-    display: grid;
-    grid-template-columns: 1fr 80px 80px 80px 36px;
-    gap: 8px;
-    padding: 8px 16px;
-    border-top: 1px solid var(--border);
-    background: rgba(0,0,0,0.2);
-  }
-
-  .ex-header span {
-    font-size: 11px;
+  .exercise-row label {
+    display: block;
+    font-size: 10px;
     color: var(--muted);
     text-transform: uppercase;
-    letter-spacing: 0.5px;
-    font-weight: 600;
+    letter-spacing: 0.4px;
+    margin-bottom: 2px;
   }
+
+  .ex-header { display: none; }
 
   .workout-actions {
     padding: 12px 16px;
@@ -2114,13 +2118,35 @@ function playRestDoneSound() {
 
 function setExerciseFeedback(exerciseName, feedback) {
   const d = getData();
-  if (!d.workoutLogs.length) return;
+  if (!d.workoutLogs.length) {
+    showToast('Save your workout first, then tap the feedback buttons');
+    return;
+  }
   const log = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date))[0];
   const ex = log.exercises && log.exercises.find(e => e.name === exerciseName);
   if (ex) {
     ex.feedback = feedback;
     saveDataSync(d);
-    showToast(feedback === 'up' ? '▲ More weight next session' : feedback === 'down' ? '▼ Less weight next session' : '→ Same weight next session');
+
+    // Visual confirmation — highlight the tapped button
+    const icons = { up: '▲', hold: '→', down: '▼' };
+    const labels = { up: 'More weight noted', hold: 'Same weight noted', down: 'Less weight noted' };
+    showToast(icons[feedback] + ' ' + labels[feedback] + ' for next session');
+
+    // Find and highlight the clicked button in the DOM
+    document.querySelectorAll('.feedback-btn').forEach(btn => {
+      if (btn.dataset.exercise === exerciseName && btn.dataset.feedback === feedback) {
+        btn.style.background = feedback === 'up' ? 'rgba(34,197,94,0.4)'
+          : feedback === 'down' ? 'rgba(239,68,68,0.4)' : 'rgba(100,116,139,0.4)';
+        btn.style.transform = 'scale(1.05)';
+        setTimeout(() => { btn.style.transform = ''; }, 300);
+      } else if (btn.dataset.exercise === exerciseName) {
+        btn.style.background = 'transparent';
+        btn.style.opacity = '0.5';
+      }
+    });
+  } else {
+    showToast('Save your workout first, then tap the feedback buttons');
   }
 }
 
@@ -2189,11 +2215,13 @@ function generateWorkout() {
     const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d, ex.weightRec);
     const suggestedWeight = weightRec && !weightRec.isBW ? weightRec.lbs : '';
     row.innerHTML = `
-      <input type="text" value="${ex.name}" class="ex-name">
-      <input type="number" value="${ex.sets}" class="ex-sets" min="1">
-      <input type="text" value="${ex.reps}" class="ex-reps">
-      <input type="text" value="${suggestedWeight}" placeholder="lbs" class="ex-weight">
-      <button class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+      <div><label>Exercise</label><input type="text" value="${ex.name}" class="ex-name ex-name-input"></div>
+      <div class="ex-row-bottom">
+        <div><label>Sets</label><input type="number" value="${ex.sets}" class="ex-sets" min="1"></div>
+        <div><label>Reps</label><input type="text" value="${ex.reps}" class="ex-reps"></div>
+        <div><label>Weight</label><input type="text" value="${suggestedWeight}" placeholder="lbs" class="ex-weight"></div>
+        <button class="btn btn-danger" style="margin-top:16px" onclick="this.closest('.exercise-row').remove()">✕</button>
+      </div>
     `;
     document.getElementById('exercise-rows').appendChild(row);
   });
@@ -2798,9 +2826,9 @@ function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
     const label = isBW ? 'Next session (reps/difficulty):' : 'Next session (weight):';
     feedbackHtml = '<div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.1)">'
       + '<span style="font-size:11px;color:var(--muted);align-self:center;flex:1">' + label + '</span>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'down\')" style="background:rgba(239,68,68,0.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">▼ Easier</button>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'hold\')" style="background:rgba(100,116,139,0.15);border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">→ Same</button>'
-      + '<button onclick="setExerciseFeedback(\'' + exName + '\',\'up\')" style="background:rgba(34,197,94,0.15);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font)">▲ Harder</button>'
+      + '<button class="feedback-btn" data-exercise="' + exName + '" data-feedback="down" onclick="setExerciseFeedback(\'' + exName + '\',\'down\')" style="background:transparent;border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s">▼ Easier</button>'
+      + '<button class="feedback-btn" data-exercise="' + exName + '" data-feedback="hold" onclick="setExerciseFeedback(\'' + exName + '\',\'hold\')" style="background:transparent;border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s">→ Same</button>'
+      + '<button class="feedback-btn" data-exercise="' + exName + '" data-feedback="up" onclick="setExerciseFeedback(\'' + exName + '\',\'up\')" style="background:transparent;border:1px solid var(--green);color:var(--green);border-radius:6px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:var(--font);transition:all 0.2s">▲ Harder</button>'
       + '</div>';
   }
 
@@ -2965,11 +2993,13 @@ function addExerciseRow() {
   const row = document.createElement('div');
   row.className = 'exercise-row';
   row.innerHTML = `
-    <input type="text" placeholder="Exercise name" class="ex-name">
-    <input type="number" placeholder="3" class="ex-sets" min="1">
-    <input type="text" placeholder="12" class="ex-reps">
-    <input type="text" placeholder="lbs" class="ex-weight">
-    <button class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
+    <div><label>Exercise</label><input type="text" placeholder="Exercise name" class="ex-name ex-name-input"></div>
+    <div class="ex-row-bottom">
+      <div><label>Sets</label><input type="number" placeholder="3" class="ex-sets" min="1"></div>
+      <div><label>Reps</label><input type="text" placeholder="12" class="ex-reps"></div>
+      <div><label>Weight</label><input type="text" placeholder="lbs" class="ex-weight"></div>
+      <button class="btn btn-danger" style="margin-top:16px" onclick="this.closest('.exercise-row').remove()">✕</button>
+    </div>
   `;
   document.getElementById('exercise-rows').appendChild(row);
 }
