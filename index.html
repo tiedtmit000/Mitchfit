@@ -786,6 +786,7 @@
   <button class="tab" onclick="switchTab('workout')">💪 Workout Log</button>
   <button class="tab" onclick="switchTab('food')">🍽️ Food Log</button>
   <button class="tab" onclick="switchTab('coach')">🤖 AI Coach</button>
+  <button class="tab" onclick="switchTab('data')">💾 Data</button>
 </div>
 
 <div class="content">
@@ -1144,6 +1145,45 @@
         </div>
       </div>
     </div>
+  </div>
+
+  <!-- DATA BACKUP -->
+  <div class="panel" id="panel-data">
+
+    <div class="card">
+      <div class="card-title">Export Data</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Downloads a complete backup of all your workouts, food logs, weight entries, and settings as a JSON file. Save this somewhere safe — iCloud, Google Drive, email it to yourself. Do this before clearing browser history or updating the app.
+      </div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px 14px;margin-bottom:16px;font-family:var(--mono);font-size:12px;color:var(--muted)" id="data-summary">
+        Loading...
+      </div>
+      <button class="btn btn-primary" onclick="exportData()" style="width:100%">⬇️ Export Backup JSON</button>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Import Data</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
+        Restore from a previously exported backup file. This will <strong style="color:var(--red)">replace all current data</strong> — only use this to restore after a data loss or when moving to a new device. It will not merge with existing data.
+      </div>
+      <div class="alert alert-red" style="margin-bottom:14px">
+        ⚠️ Import overwrites everything. Export first if you have data you want to keep.
+      </div>
+      <label for="import-file" style="display:block;width:100%;background:var(--surface2);border:2px dashed var(--border);border-radius:8px;padding:20px;text-align:center;cursor:pointer;font-size:14px;color:var(--muted);transition:border-color 0.2s" id="import-drop-zone">
+        📂 Tap to select backup file
+        <input type="file" id="import-file" accept=".json" style="display:none" onchange="handleImportFile(event)">
+      </label>
+      <div id="import-status" style="margin-top:12px"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Danger Zone</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:16px">
+        Permanently delete all app data. Cannot be undone. Export first.
+      </div>
+      <button class="btn btn-danger" style="width:100%;padding:10px" onclick="confirmClearData()">🗑️ Clear All Data</button>
+    </div>
+
   </div>
 
 </div>
@@ -1628,6 +1668,7 @@ function switchTab(id) {
   event.target.classList.add('active');
   document.getElementById('panel-' + id).classList.add('active');
   renderAll();
+  if (id === 'data') renderDataSummary();
 }
 
 // ═══════════════════════════════════════════
@@ -2240,12 +2281,9 @@ function getFitnessPhase(d) {
 }
 
 function scaleForPhase(ex, phase) {
-  const e = {...ex};
-  if (phase === 1) {
-    e.sets = Math.max(2, e.sets - 1);
-    e.rest = Math.round(e.rest * 1.25);
-  }
-  return e;
+  // Phase 1 messaging is preserved but sets and rest are not reduced —
+  // experienced trainees need to find working weights at full volume
+  return {...ex};
 }
 
 function generateWorkout() {
@@ -4722,6 +4760,169 @@ function showToast(msg) {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
+}
+
+// ═══════════════════════════════════════════
+// DATA BACKUP — EXPORT / IMPORT / CLEAR
+// ═══════════════════════════════════════════
+
+function renderDataSummary() {
+  const el = document.getElementById('data-summary');
+  if (!el) return;
+  const d = getData();
+  const learned = getLearnedFoods();
+  const lines = [
+    'Workout logs: ' + d.workoutLogs.length,
+    'Food entries: ' + d.foodLogs.length,
+    'Weight entries: ' + d.weightLogs.length,
+    'Coach messages: ' + d.coachHistory.length,
+    'Learned foods: ' + Object.keys(learned).length,
+    'Start weight: ' + d.startWeight + ' lbs',
+    'Current goal: ' + d.currentGoal + ' lbs',
+  ];
+  el.textContent = lines.join('  ·  ');
+}
+
+function exportData() {
+  const d = getData();
+  const learned = getLearnedFoods();
+
+  // Collect every relevant localStorage key
+  const backup = {
+    version: 2,
+    exportedAt: new Date().toISOString(),
+    data: {
+      settings:  { startWeight: d.startWeight, currentGoal: d.currentGoal, milestones: d.milestones },
+      weights:   { weightLogs: d.weightLogs },
+      workouts:  { workoutLogs: d.workoutLogs },
+      food:      { foodLogs: d.foodLogs, checklists: d.checklists },
+      coach:     { coachHistory: d.coachHistory },
+      learned:   learned,
+    }
+  };
+
+  // Also capture any daily brief caches and migration flags
+  const extras = {};
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && key.startsWith('mitchfit_brief_')) {
+      try { extras[key] = JSON.parse(localStorage.getItem(key)); } catch(e) {}
+    }
+  }
+  backup.extras = extras;
+
+  const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = localDateStr();
+  a.href = url;
+  a.download = 'mitchfit-backup-' + date + '.json';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast('Backup downloaded ✓');
+}
+
+function handleImportFile(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  const status = document.getElementById('import-status');
+  status.innerHTML = '<div style="font-size:13px;color:var(--muted)">Reading file...</div>';
+
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const backup = JSON.parse(e.target.result);
+
+      // Validate structure
+      if (!backup.data || !backup.version) {
+        status.innerHTML = '<div class="alert alert-red">Invalid backup file — not a MitchFit export.</div>';
+        return;
+      }
+
+      // Show preview before committing
+      const d = backup.data;
+      const summary = [
+        (d.workouts?.workoutLogs?.length || 0) + ' workouts',
+        (d.food?.foodLogs?.length || 0) + ' food entries',
+        (d.weights?.weightLogs?.length || 0) + ' weight entries',
+        (d.coach?.coachHistory?.length || 0) + ' coach messages',
+      ].join(', ');
+
+      // Store backup in module-level variable — avoids JSON-in-HTML escaping issues
+      window._pendingImport = backup;
+
+      status.innerHTML = '<div class="alert alert-blue" style="margin-bottom:12px">Found: ' + summary + '<br>Exported: ' + (backup.exportedAt || 'unknown') + '</div>'
+        + '<button class="btn btn-primary" style="width:100%" onclick="commitImport()">Restore This Backup</button>'
+        + '<button class="btn btn-outline" style="width:100%;margin-top:8px" onclick="cancelImport()">Cancel</button>';
+
+    } catch(err) {
+      status.innerHTML = '<div class="alert alert-red">Could not parse file: ' + err.message + '</div>';
+    }
+  };
+  reader.readAsText(file);
+}
+
+function commitImport() {
+  try {
+    const backup = window._pendingImport;
+    if (!backup) { showToast('No backup loaded'); return; }
+    const d = backup.data;
+
+    // Write each key
+    if (d.settings)  lsSet('mitchfit_settings', d.settings);
+    if (d.weights)   lsSet('mitchfit_weights',  d.weights);
+    if (d.workouts)  lsSet('mitchfit_workouts', d.workouts);
+    if (d.food)      lsSet('mitchfit_food',      d.food);
+    if (d.coach)     lsSet('mitchfit_coach',     d.coach);
+    if (d.learned)   lsSet('mitchfit_learned',   d.learned);
+
+    // Restore brief caches
+    if (backup.extras) {
+      Object.entries(backup.extras).forEach(([key, val]) => lsSet(key, val));
+    }
+
+    // Reset in-memory cache so getData() re-reads from localStorage
+    _cache = null;
+    _learnedCache = null;
+
+    showToast('Data restored successfully ✓');
+    document.getElementById('import-status').innerHTML = '<div class="alert alert-green">Restore complete. Reloading...</div>';
+
+    setTimeout(() => window.location.reload(), 1200);
+  } catch(err) {
+    document.getElementById('import-status').innerHTML = '<div class="alert alert-red">Restore failed: ' + err.message + '</div>';
+  }
+}
+
+function cancelImport() {
+  window._pendingImport = null;
+  document.getElementById('import-status').innerHTML = '';
+  document.getElementById('import-file').value = '';
+}
+
+function confirmClearData() {
+  if (!confirm('Delete ALL MitchFit data permanently? This cannot be undone. Export first if you want a backup.')) return;
+  if (!confirm('Are you sure? Every workout, food entry, and weight log will be gone.')) return;
+
+  ['mitchfit_settings','mitchfit_weights','mitchfit_workouts','mitchfit_food',
+   'mitchfit_coach','mitchfit_learned','mitchfit_utc_migrated','mitchfit_legacy_recovered'].forEach(k => {
+    localStorage.removeItem(k);
+  });
+  // Remove brief caches
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('mitchfit_')) keys.push(k);
+  }
+  keys.forEach(k => localStorage.removeItem(k));
+
+  _cache = null;
+  _learnedCache = null;
+  showToast('All data cleared');
+  setTimeout(() => window.location.reload(), 1000);
 }
 
 // ═══════════════════════════════════════════
