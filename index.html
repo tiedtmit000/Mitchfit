@@ -791,7 +791,7 @@
     <div id="dash-alert"></div>
 
     <!-- YESTERDAY'S RECAP -->
-    <div id="morning-brief-card" style="display:none" class="card" style="border-color:var(--accent)">
+    <div id="morning-brief-card" style="display:none" class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
         <div class="card-title" style="margin-bottom:0">📊 Yesterday's Recap</div>
         <span style="font-size:11px;color:var(--muted);font-family:var(--mono)" id="morning-brief-date"></span>
@@ -1284,12 +1284,67 @@ function localYesterday() {
   return localDateStr(d);
 }
 
+function migrateUTCDates() {
+  // Only run once per device
+  if (lsGet('mitchfit_utc_migrated')) return;
+
+  const d = getData();
+  const today = localDateStr();
+  let changed = false;
+
+  // Fix food logs with future dates (UTC artifact)
+  d.foodLogs = d.foodLogs.map(entry => {
+    if (entry.date > today) {
+      // Shift back one day — this was a UTC date logged at night
+      const corrected = new Date(entry.date + 'T12:00:00');
+      corrected.setDate(corrected.getDate() - 1);
+      changed = true;
+      return { ...entry, date: localDateStr(corrected) };
+    }
+    return entry;
+  });
+
+  // Fix weight logs with future dates
+  d.weightLogs = d.weightLogs.map(entry => {
+    if (entry.date > today) {
+      const corrected = new Date(entry.date + 'T12:00:00');
+      corrected.setDate(corrected.getDate() - 1);
+      changed = true;
+      return { ...entry, date: localDateStr(corrected) };
+    }
+    return entry;
+  });
+
+  // Fix workout logs with future dates
+  d.workoutLogs = d.workoutLogs.map(entry => {
+    if (entry.date > today) {
+      const corrected = new Date(entry.date + 'T12:00:00');
+      corrected.setDate(corrected.getDate() - 1);
+      changed = true;
+      return { ...entry, date: localDateStr(corrected) };
+    }
+    return entry;
+  });
+
+  if (changed) {
+    saveDataSync(d);
+    console.log('Migrated UTC date entries to local dates');
+  }
+
+  // Mark as done so it never runs again
+  lsSet('mitchfit_utc_migrated', { done: true, at: Date.now() });
+}
+
 function init() {
   const today = localDateStr();
   document.getElementById('wo-date').value = today;
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
+
+  // One-time migration: fix entries stored under UTC dates (future dates)
+  // UTC at night in US timezones creates dates 1 day ahead of local date
+  migrateUTCDates();
 
   // Purge garbage learned cache entries
   const learned = getLearnedFoods();
@@ -1332,9 +1387,9 @@ async function checkMorningBrief() {
   const hour = new Date().getHours();
   if (hour >= 19) return;
 
-  // Only show if yesterday has food logs
+  // Only show if yesterday has any food logged
   const yesterdayFood = d.foodLogs.filter(f => f.date === yesterday);
-  if (yesterdayFood.length < 2) return;
+  if (yesterdayFood.length < 1) return;
 
   // Check if we already generated a brief today — don't re-call API
   const cacheKey = 'mitchfit_brief_' + today;
@@ -1406,7 +1461,17 @@ Write a morning brief in 3-4 sentences maximum. Be direct and specific — refer
     }
   } catch(e) {
     console.warn('Morning brief failed:', e.message);
-    document.getElementById('morning-brief-card').style.display = 'none';
+    // Show the card with a fallback instead of hiding it silently
+    const totals2 = yesterdayFood.reduce((acc, f) => ({
+      cal: acc.cal + (f.calories || 0),
+      protein: acc.protein + (f.protein || 0),
+    }), { cal: 0, protein: 0 });
+    const calDiff = totals2.cal - 2300;
+    const proteinShort = 185 - totals2.protein;
+    const fallback = 'Yesterday: ' + totals2.cal + ' cal (' + (calDiff > 0 ? '+' + calDiff + ' over' : Math.abs(calDiff) + ' under') + ' target), '
+      + totals2.protein + 'g protein (' + (proteinShort > 0 ? proteinShort + 'g short' : 'target hit') + '). '
+      + (proteinShort > 30 ? 'Protein was the biggest gap — prioritize it first today.' : calDiff > 300 ? 'Calories were significantly over — identify the meal that caused it.' : 'Solid day. Maintain the pattern.');
+    showMorningBrief(fallback, yesterday);
   }
 }
 
@@ -2659,8 +2724,6 @@ function renderExerciseBlock(ex, i, phase, d) {
   const isBW = weightRec && weightRec.isBW;
   const exName = ex.name.replace(/'/g, "\\'");
   const blockId = 'ex-block-' + i;
-  const alts = SUBSTITUTIONS[ex.name];
-  const hasAlts = alts && alts.length > 0;
 
   // Weight display
   let weightHtml = '';
@@ -2680,16 +2743,22 @@ function renderExerciseBlock(ex, i, phase, d) {
       + '</div>';
   }
 
+  const availableAlts = getAvailableAlts(ex.name, d);
+  const hasAlts = availableAlts.length > 0;
+  const allUsed = SUBSTITUTIONS[ex.name] && SUBSTITUTIONS[ex.name].length > 0 && availableAlts.length === 0;
+
   // Swap button
   let swapHtml = '';
   if (hasAlts) {
-    const firstAlt = alts[0];
     swapHtml = '<div style="padding:6px 14px;border-top:1px solid var(--border)">'
       + '<button class="swap-btn" onclick="swapExercise(\'' + blockId + '\',\'' + ex.name.replace(/'/g,"\\'") + '\',0)" '
-      + 'title="Swap for: ' + firstAlt + '" '
       + 'style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font);width:100%;text-align:left">'
-      + '⇄ Swap — ' + firstAlt
+      + '⇄ Swap — ' + availableAlts[0]
       + '</button></div>';
+  } else if (allUsed) {
+    swapHtml = '<div style="padding:6px 14px;border-top:1px solid var(--border)">'
+      + '<div style="font-size:11px;color:var(--muted);padding:5px 2px">⇄ All alternatives used this week — check back next week</div>'
+      + '</div>';
   }
 
   // Feedback buttons
