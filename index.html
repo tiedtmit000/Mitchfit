@@ -2331,15 +2331,27 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
 
   if (phase === 1) {
     const exercises = isGym
-      ? [ { ...E.treadmill_walk, reps:'15 min', sets:1 }, E.glute_bridge, E.dead_bug ]
-      : [ { ...E.kb_swing, sets:3 }, E.kb_farmer_carry, E.dead_bug ];
+      ? [
+          { ...E.treadmill_walk, reps:'15 min', sets:1 },
+          { ...E.plank, sets:3 },
+          { ...E.glute_bridge, sets:3 },
+          { ...E.dead_bug, sets:3 },
+          { ...E.bird_dog, sets:3 },
+        ]
+      : [
+          { ...E.kb_swing, sets:3 },
+          { ...E.kb_farmer_carry, sets:3 },
+          { ...E.march_in_place, sets:3 },
+          { ...E.plank, sets:3 },
+          { ...E.dead_bug, sets:3 },
+        ];
     return {
       title: 'Day B — Cardio + Core',
       type: 'Cardio + Core (Day B)',
       focus: 'Fat Burn · Heart Rate · Core',
       calBurn: '150-220',
-      exercises: exercises.map(e => scaleForPhase(e, 1)),
-      notes: 'Intro cardio. Moderate pace, focus on breathing. This adapts in 2 weeks then we push harder.',
+      exercises,
+      notes: 'Intro cardio phase. Treadmill sets the aerobic base, then core work builds the foundation. Do not rush the core exercises — quality over speed.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
@@ -2352,8 +2364,8 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
     1: {
       label: 'Steady State Cardio',
       note: 'Sustained moderate intensity. Stays in the fat-burning zone. The most efficient calorie burn per unit of joint stress at your current weight.',
-      gym: [ { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 }, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge ],
-      home: [ { ...E.kb_swing, sets:5 }, E.kb_farmer_carry, E.march_in_place, E.plank, E.dead_bug ],
+      gym: [ { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 }, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge, E.pallof_press, E.hip_thrust ],
+      home: [ { ...E.kb_swing, sets:5 }, E.kb_farmer_carry, E.march_in_place, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge ],
     },
     // VARIANT 2: Cross Training — multiple machines
     2: {
@@ -2377,7 +2389,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is genuinely hard. That is what intervals are supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        E.kb_farmer_carry, E.plank, E.dead_bug,
+        E.kb_farmer_carry, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge,
       ],
     },
     // VARIANT 4: Loaded Carries & Conditioning — functional fat loss
@@ -2405,10 +2417,10 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,3);
-  else if (mins <= 30) exercises = exercises.slice(0,5);
-  else if (mins <= 45) exercises = exercises.slice(0,6);
-  else exercises = exercises; // 60+ full list
+  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
+  else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
+  else if (mins <= 45) exercises = exercises.slice(0,6).map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3}));
+  else exercises = exercises.map(e=>({...e, sets: e.cat==='cardio' ? e.sets : 3})); // 60+ full list
 
   return {
     title: 'Day B — ' + v.label,
