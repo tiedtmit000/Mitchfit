@@ -2513,11 +2513,133 @@ function renderWorkoutPlan(plan, phaseInfo) {
   `;
 }
 
+// ── EXERCISE SUBSTITUTIONS ───────────────────────────────────────────────
+// Keyed by exercise name → array of alternatives targeting same muscle
+// Each alt: { name, weight, tip, weightRec }
+const SUBSTITUTIONS = {
+  // LEGS
+  'Goblet Squat':                  ['KB Sumo Squat', 'Wall Sit Hold', 'Reverse Lunge', 'Box Step-Up'],
+  'Single-Leg Romanian Deadlift':  ['KB Romanian Deadlift', 'DB Romanian Deadlift', 'Hip Thrust', 'Glute Bridge'],
+  'Hip Thrust':                    ['Glute Bridge', 'KB Romanian Deadlift', 'Single-Leg Romanian Deadlift'],
+  'Leg Press Machine':             ['Goblet Squat', 'Reverse Lunge', 'Box Step-Up', 'Wall Sit Hold'],
+  'Reverse Lunge':                 ['Goblet Squat', 'Box Step-Up', 'Lateral Lunge', 'Walking Lunge'],
+  'Lateral Lunge':                 ['Reverse Lunge', 'Walking Lunge', 'Box Step-Up'],
+  'Walking Lunge':                 ['Reverse Lunge', 'Lateral Lunge', 'Box Step-Up'],
+  'Box Step-Up':                   ['Reverse Lunge', 'Goblet Squat', 'Walking Lunge'],
+  'KB Sumo Squat':                 ['Goblet Squat', 'Wall Sit Hold', 'Reverse Lunge'],
+  'Wall Sit Hold':                 ['Goblet Squat', 'Leg Press Machine'],
+  'Sumo KB Squat':                 ['Goblet Squat', 'KB Sumo Squat'],
+  'Leg Press High Rep':            ['Goblet Squat', 'Walking Lunge', 'Reverse Lunge'],
+  'KB Goblet Squat High Rep':      ['Goblet Squat', 'Walking Lunge', 'Wall Sit Hold'],
+  'Sumo Squat to Stand':           ['Goblet Squat', 'KB Sumo Squat'],
+  // CORE
+  'Pallof Press':                  ['Dead Bug', 'Bird Dog', 'Plank Hold'],
+  'Pallof Press with KB':          ['Dead Bug', 'Bird Dog', 'Plank Hold'],
+  'Dead Bug':                      ['Bird Dog', 'Plank Hold', 'Pallof Press'],
+  'Bird Dog':                      ['Dead Bug', 'Plank Hold', 'Pallof Press'],
+  'Plank Hold':                    ['Dead Bug', 'Bird Dog'],
+  'Glute Bridge':                  ['Hip Thrust', 'KB Romanian Deadlift'],
+  // PUSH
+  'DB Incline Press':              ['KB Floor Press', 'DB Chest Press (flat bench)', 'Pushups (incline if needed)'],
+  'KB Floor Press':                ['DB Incline Press', 'Pushups (incline if needed)'],
+  'DB Shoulder Press':             ['Arnold Press', 'Lateral Raise', 'KB Floor Press'],
+  'Arnold Press':                  ['DB Shoulder Press', 'Lateral Raise'],
+  'Lateral Raise':                 ['DB Shoulder Press', 'Arnold Press'],
+  'Pushups (incline if needed)':   ['DB Incline Press', 'KB Floor Press'],
+  // PULL
+  'Lat Pulldown':                  ['Seated Cable Row', 'Single-Arm DB Row', 'KB Bent-Over Row'],
+  'Seated Cable Row':              ['Lat Pulldown', 'Single-Arm DB Row', 'KB Bent-Over Row'],
+  'Single-Arm DB Row':             ['Seated Cable Row', 'Lat Pulldown', 'KB Bent-Over Row'],
+  'KB Bent-Over Row':              ['Single-Arm DB Row', 'Seated Cable Row'],
+  'Cable Face Pull':               ['Lateral Raise', 'DB Shoulder Press'],
+  // ARMS
+  'Bicep Curl with Supination':    ['Hammer Curl', 'Incline DB Curl'],
+  'Hammer Curl':                   ['Bicep Curl with Supination', 'Incline DB Curl'],
+  'Incline DB Curl':               ['Bicep Curl with Supination', 'Hammer Curl'],
+  'Overhead Tricep Extension':     ['Tricep Cable Pushdown', 'KB Overhead Tricep Extension', 'Tricep Dips (chair)'],
+  'Tricep Cable Pushdown':         ['Overhead Tricep Extension', 'KB Overhead Tricep Extension'],
+  'KB Overhead Tricep Extension':  ['Overhead Tricep Extension', 'Tricep Cable Pushdown'],
+  'Wrist Curl & Extension':        ['Cable External Rotation'],
+  'Cable External Rotation':       ['Wrist Curl & Extension'],
+  // CARDIO
+  'Treadmill Incline Walk':        ['Rowing Machine', 'Stationary Bike', 'High Knees March'],
+  'Rowing Machine':                ['Treadmill Incline Walk', 'Stationary Bike', 'KB Swing'],
+  'Stationary Bike':               ['Treadmill Incline Walk', 'Rowing Machine'],
+  'KB Swing':                      ['KB Farmer Carry (40 steps)', 'High Knees March', 'Shadow Jump Rope'],
+  'KB Farmer Carry (40 steps)':    ['KB Swing', 'High Knees March'],
+  'High Knees March':              ['KB Swing', 'Shadow Jump Rope'],
+  'Treadmill Intervals':           ['Rowing Machine', 'Stationary Bike'],
+  'KB Swing Intervals':            ['KB Farmer Carry (40 steps)', 'High Knees March'],
+  'Renegade Row':                  ['Single-Arm DB Row', 'KB Bent-Over Row'],
+};
+
+function swapExercise(blockId, currentName, swapIndex) {
+  const alts = SUBSTITUTIONS[currentName];
+  if (!alts || !alts.length) return;
+
+  // Cycle through alternatives
+  const nextIndex = swapIndex % alts.length;
+  const altName = alts[nextIndex];
+
+  // Find the alt in EXERCISES by name
+  const exKey = Object.keys(EXERCISES).find(k => EXERCISES[k].name === altName);
+  const altEx = exKey ? EXERCISES[exKey] : null;
+
+  const block = document.getElementById(blockId);
+  if (!block) return;
+
+  // Update the exercise name display
+  const nameEl = block.querySelector('.ex-name-big');
+  if (nameEl) {
+    const num = nameEl.textContent.split('.')[0];
+    nameEl.textContent = num + '. ' + altName;
+  }
+
+  // Update tip
+  const tipEl = block.querySelector('.ex-tip');
+  if (tipEl && altEx && altEx.tip) {
+    tipEl.textContent = '💡 ' + altEx.tip;
+  } else if (tipEl) {
+    tipEl.textContent = '💡 Same muscle group — different movement pattern.';
+  }
+
+  // Update the swap button to cycle to next alt
+  const swapBtn = block.querySelector('.swap-btn');
+  if (swapBtn) {
+    const nextAltIndex = (nextIndex + 1) % alts.length;
+    const nextAltName = alts[nextAltIndex];
+    swapBtn.setAttribute('onclick', 'swapExercise("' + blockId + '","' + altName.replace(/"/g,'\\"') + '",' + nextAltIndex + ')');
+    swapBtn.title = 'Next: ' + nextAltName;
+  }
+
+  // Update the exercise name input in the log form
+  const rows = document.querySelectorAll('.exercise-row');
+  rows.forEach(row => {
+    const nameInput = row.querySelector('.ex-name');
+    if (nameInput && nameInput.value.trim() === currentName) {
+      nameInput.value = altName;
+      // Update weight if we have a rec
+      const d = getData();
+      const phase = getFitnessPhase(d).phase;
+      const rec = altEx ? getWeightRecommendation(altName, phase, d) : null;
+      if (rec && !rec.isBW) {
+        const weightInput = row.querySelector('.ex-weight');
+        if (weightInput && !weightInput.value) weightInput.value = rec.lbs;
+      }
+    }
+  });
+
+  showToast('Swapped to ' + altName);
+}
+
 function renderExerciseBlock(ex, i, phase, d) {
   const weightRec = getWeightRecommendation(ex.name, phase, d);
   const isCardio = ex.cat === 'cardio';
   const isBW = weightRec && weightRec.isBW;
   const exName = ex.name.replace(/'/g, "\\'");
+  const blockId = 'ex-block-' + i;
+  const alts = SUBSTITUTIONS[ex.name];
+  const hasAlts = alts && alts.length > 0;
 
   // Weight display
   let weightHtml = '';
@@ -2535,6 +2657,18 @@ function renderExerciseBlock(ex, i, phase, d) {
       + '<div style="font-family:var(--mono);font-size:18px;font-weight:700;color:' + weightColor + '">' + weightText + '</div>'
       + noteHtml
       + '</div>';
+  }
+
+  // Swap button
+  let swapHtml = '';
+  if (hasAlts) {
+    const firstAlt = alts[0];
+    swapHtml = '<div style="padding:6px 14px;border-top:1px solid var(--border)">'
+      + '<button class="swap-btn" onclick="swapExercise(\'' + blockId + '\',\'' + ex.name.replace(/'/g,"\\'") + '\',0)" '
+      + 'title="Swap for: ' + firstAlt + '" '
+      + 'style="background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer;font-family:var(--font);width:100%;text-align:left">'
+      + '⇄ Swap — ' + firstAlt
+      + '</button></div>';
   }
 
   // Feedback buttons
@@ -2563,7 +2697,7 @@ function renderExerciseBlock(ex, i, phase, d) {
     ? '<div class="ex-tip">💡 ' + ex.tip + '</div>'
     : '';
 
-  return '<div class="ex-block" style="margin-bottom:12px">'
+  return '<div class="ex-block" id="' + blockId + '" style="margin-bottom:12px">'
     + '<div class="ex-block-header">'
     + '<div style="flex:1">'
     + '<div class="ex-name-big">' + (i+1) + '. ' + ex.name + '</div>'
@@ -2572,10 +2706,12 @@ function renderExerciseBlock(ex, i, phase, d) {
     + weightHtml
     + '</div>'
     + tipHtml
+    + swapHtml
     + feedbackHtml
     + restHtml
     + '</div>';
 }
+
 
 
 
