@@ -1752,72 +1752,162 @@ function resetWorkoutPlanner() {
 const GYM = 'gym', HOME = 'home', BOTH = 'both';
 
 const EXERCISES = {
-  // LEGS
-  goblet_squat:       { name:'Goblet Squat', cat:'legs', loc:BOTH, sets:3, reps:'12', weight:'35lb KB', rest:90,
-    tip:'Hold KB at chest, push knees out, sit back into your hips. This is your primary leg burner.' },
-  leg_press:          { name:'Leg Press Machine', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'start light', rest:90,
-    tip:'Feet shoulder-width, push through heels. Easier on joints than squats for starting out.' },
-  reverse_lunge:      { name:'Reverse Lunge', cat:'legs', loc:BOTH, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75,
-    tip:'Step back, lower knee toward floor. Easier on knees than forward lunges. Control the descent.' },
-  kb_sumo_squat:      { name:'KB Sumo Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75,
-    tip:'Wide stance, toes out, KB hanging between legs. Great for inner thighs and glutes.' },
-  wall_sit:           { name:'Wall Sit Hold', cat:'legs', loc:BOTH, sets:3, reps:'30-45 sec', weight:'bodyweight', rest:60,
-    tip:'Back flat against wall, thighs parallel. Burns calories and builds quad endurance without equipment.' },
-  step_up:            { name:'Step-Up (bench or stair)', cat:'legs', loc:BOTH, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75,
-    tip:'Drive through the heel on the step, stand tall at top. Excellent functional strength.' },
-  // PUSH
-  db_chest_press:     { name:'DB Chest Press (flat bench)', cat:'push', loc:GYM, sets:3, reps:'10', weight:'start 30-35lb DBs', rest:90,
-    tip:'Lower until elbows hit bench level, press straight up. Full range of motion matters more than weight.' },
-  db_shoulder_press:  { name:'DB Shoulder Press', cat:'push', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:75,
-    tip:'Press straight overhead, don\'t arch your back. Shoulders and triceps — major calorie burners.' },
-  pushup:             { name:'Pushups (incline if needed)', cat:'push', loc:BOTH, sets:3, reps:'8-12', weight:'bodyweight', rest:60,
-    tip:'Use a counter or bench to make it incline if needed. Chest to fist. No sagging hips.' },
-  kb_floor_press:     { name:'KB Floor Press', cat:'push', loc:HOME, sets:3, reps:'10', weight:'35lb KBs', rest:75,
-    tip:'Lie on floor, press KBs up. Natural range limiter protects your shoulders while still hitting chest.' },
-  tricep_dip:         { name:'Tricep Dips (chair)', cat:'push', loc:BOTH, sets:3, reps:'10-12', weight:'bodyweight', rest:60,
-    tip:'Hands on chair behind you, lower slowly. At 273lbs this is harder — that makes it more effective.' },
-  // PULL
-  lat_pulldown:       { name:'Lat Pulldown Machine', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'start moderate', rest:90,
-    tip:'Pull to upper chest, squeeze lats at bottom. One of the best upper back builders you have access to.' },
-  db_row:             { name:'Single-Arm DB Row', cat:'pull', loc:BOTH, sets:3, reps:'12 each side', weight:'35lb DB', rest:75,
-    tip:'Knee and hand on bench, pull elbow up and back. Think pulling your elbow to your hip pocket.' },
-  kb_row:             { name:'KB Bent-Over Row', cat:'pull', loc:HOME, sets:3, reps:'12 each side', weight:'35lb KB', rest:75,
-    tip:'Hinge forward 45°, pull KB to hip. Keep your back flat — not rounded. Core tight throughout.' },
-  face_pull_band:     { name:'Cable Face Pull', cat:'pull', loc:GYM, sets:3, reps:'15', weight:'light', rest:60,
-    tip:'Pulls to face level, elbows high. Critical for shoulder health — don\'t skip this.' },
-  seated_row:         { name:'Seated Cable Row', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'moderate', rest:90,
-    tip:'Sit tall, pull to lower ribs, squeeze shoulder blades together. Great for back thickness.' },
-  // HINGE
-  kb_deadlift:        { name:'KB Romanian Deadlift', cat:'hinge', loc:BOTH, sets:3, reps:'10', weight:'35lb KBs', rest:90,
-    tip:'Hinge at hips, push them back, lower KBs along legs. Feel hamstrings stretch, not your lower back.' },
-  db_rdl:             { name:'DB Romanian Deadlift', cat:'hinge', loc:BOTH, sets:3, reps:'10', weight:'35lb DBs', rest:90,
-    tip:'Same hip hinge pattern. Your posterior chain (hamstrings, glutes) is your biggest calorie-burning muscle group.' },
-  hip_thrust:         { name:'Hip Thrust (bench)', cat:'hinge', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:75,
-    tip:'Upper back on bench, drive hips up, squeeze glutes at top. Best glute exercise you can do.' },
-  // CORE
-  plank:              { name:'Plank Hold', cat:'core', loc:BOTH, sets:3, reps:'30-45 sec', weight:'bodyweight', rest:45,
-    tip:'Forearms down, body rigid, no sagging hips. This protects your lower back through all other lifts.' },
-  dead_bug:           { name:'Dead Bug', cat:'core', loc:BOTH, sets:3, reps:'8 each side', weight:'bodyweight', rest:45,
-    tip:'Lower back MUST stay pressed to floor. Opposite arm and leg lower slowly. Best core stabilizer there is.' },
-  glute_bridge:       { name:'Glute Bridge', cat:'core', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:45,
-    tip:'Drive hips up, squeeze at top for 1 second. Activates glutes which most sedentary people have shut off.' },
-  bird_dog:           { name:'Bird Dog', cat:'core', loc:BOTH, sets:3, reps:'8 each side', weight:'bodyweight', rest:45,
-    tip:'Opposite arm and leg, hold 2 seconds. Protects your lumbar spine and builds balance.' },
-  kb_farmer_carry:    { name:'KB Farmer Carry (20 steps)', cat:'core', loc:BOTH, sets:3, reps:'20 steps', weight:'35lb KBs', rest:60,
-    tip:'Walk tall, core braced, don\'t let hips shift. Builds everything and burns serious calories.' },
-  // CARDIO
-  treadmill_walk:     { name:'Treadmill Incline Walk', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'3.5mph / 4% incline', rest:0,
-    tip:'No running yet. Incline walking at your size burns 400+ cal and zero joint damage.' },
-  kb_swing:           { name:'KB Swing', cat:'cardio', loc:HOME, sets:4, reps:'15', weight:'35lb KB', rest:45,
-    tip:'Hinge, drive hips forward, swing to chest height. This is cardio AND strength — high calorie burn.' },
-  march_in_place:     { name:'High Knees March', cat:'cardio', loc:BOTH, sets:3, reps:'30 sec', weight:'bodyweight', rest:30,
-    tip:'Drive knees up, pump arms. Low impact substitute for running when time is short.' },
-  jump_rope_alt:      { name:'Shadow Jump Rope', cat:'cardio', loc:BOTH, sets:4, reps:'45 sec', weight:'bodyweight', rest:30,
-    tip:'Mimic jump rope motion without the rope. Still spikes heart rate without the impact.' },
-  row_machine:        { name:'Rowing Machine', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'moderate pace', rest:0,
-    tip:'Full body cardio. Push with legs FIRST, then pull arms. Burns more than treadmill at same effort.' },
-  bike:               { name:'Stationary Bike', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'resistance 6-8', rest:0,
-    tip:'Zero joint impact. Great for you right now. Keep RPM above 70 to hit fat-burning zone.' },
+  // ═══════════════════════════════════════════════════════════════
+  // MITCH'S PROGRAM — Full body 3x/week
+  // Science basis: Israetel et al., Schoenfeld meta-analyses, Nippard programming
+  // Goals: fat loss, arm hypertrophy (bi/tri), golf & archery performance
+  // Equipment: Full gym OR home (15/35lb KBs, 25/35lb DBs, yoga mat)
+  // ═══════════════════════════════════════════════════════════════
+
+  // ── DAY A: LOWER BODY + CORE (Legs are largest muscle group = highest calorie burn)
+  // Golf/archery carryover: hip hinge, single-leg stability, anti-rotation core
+
+  single_leg_rdl:   { name:'Single-Leg Romanian Deadlift', cat:'legs', loc:BOTH, sets:3, reps:'8 each leg', weight:'25lb DB', rest:90,
+    tip:'GOLF TRANSFER: This is the hip hinge of your impact position. Hold DB in opposite hand, hinge until you feel hamstring, drive through heel to stand. Improves swing power and prevents lower back injury.',
+    weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+
+  goblet_squat:     { name:'Goblet Squat', cat:'legs', loc:BOTH, sets:3, reps:'12', weight:'35lb KB', rest:75,
+    tip:'Hold KB at chest, elbows inside knees, sit back and down. Builds quad and glute strength that directly powers the drive phase of your golf swing.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  hip_thrust:       { name:'Hip Thrust', cat:'legs', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:75,
+    tip:'Upper back on bench, drive through heels, squeeze glutes hard at top for 1 second. Glutes are the primary power source for both golf distance and archery stability. Most undertrained muscle in sedentary men.',
+    weightRec:{ phase1:0, phase2:35, phase3:35, machine:false, unit:'lb', bw_first:true } },
+
+  pallof_press:     { name:'Pallof Press', cat:'core', loc:GYM, sets:3, reps:'12 each side', weight:'20 lbs', rest:60,
+    tip:'GOLF/ARCHERY TRANSFER: Stand sideways to cable, press straight out and hold 2 seconds. Trains anti-rotation — your ability to resist lateral sway. This directly improves golf consistency and archery draw stability. Non-negotiable.',
+    weightRec:{ phase1:15, phase2:20, phase3:25, machine:true, unit:'lb' } },
+
+  pallof_press_home:{ name:'Pallof Press with KB', cat:'core', loc:HOME, sets:3, reps:'12 each side', weight:'15lb KB', rest:60,
+    tip:'Hold KB at chest, arms extended, resist rotation for 2 seconds each rep. Anti-rotation core work for golf and archery.',
+    weightRec:{ phase1:15, phase2:15, phase3:15, machine:false, unit:'lb', kb:true } },
+
+  dead_bug:         { name:'Dead Bug', cat:'core', loc:BOTH, sets:3, reps:'8 each side', weight:'bodyweight', rest:45,
+    tip:'ARCHERY TRANSFER: Lower back pressed to floor — never leaves. Opposite arm and leg extend slowly. Builds the deep core stability that keeps your bow arm locked during draw and release.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  bird_dog:         { name:'Bird Dog', cat:'core', loc:BOTH, sets:3, reps:'10 each side', weight:'bodyweight', rest:45,
+    tip:'Opposite arm and leg, hold 2 seconds at full extension. GOLF: Trains lumbar stability through rotation. If your lower back is tired after 18 holes this is your fix.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  leg_press:        { name:'Leg Press Machine', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'90 lbs', rest:90,
+    tip:'Feet shoulder-width, push through heels, do not lock knees at top. Largest muscle group = most calories burned per set of any exercise you will do.',
+    weightRec:{ phase1:90, phase2:130, phase3:180, machine:true, unit:'lb' } },
+
+  // ── DAY B: CARDIO + CONDITIONING
+  // Primary fat loss day. Designed to complement strength days.
+
+  treadmill_walk:   { name:'Treadmill Incline Walk', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'3.5mph / 5% incline', rest:0,
+    tip:'No running yet — incline walking at your size burns equivalent calories with zero joint damage. As weight drops increase incline before increasing speed.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  rowing_machine:   { name:'Rowing Machine', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'damper 4', rest:0,
+    tip:'ARCHERY TRANSFER: The rowing pull directly trains the same muscles used in bow draw — lats, rhomboids, rear delts. Legs first, then hinge, then pull. Burns more calories than treadmill at same effort.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  stationary_bike:  { name:'Stationary Bike', cat:'cardio', loc:GYM, sets:1, reps:'continuous', weight:'resistance 7', rest:0,
+    tip:'Zero joint impact. Keep RPM above 75. Alternate with rower if available.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  kb_swing:         { name:'KB Swing', cat:'cardio', loc:HOME, sets:5, reps:'15', weight:'35lb KB', rest:45,
+    tip:'GOLF TRANSFER: The KB swing is the closest gym movement to a golf swing — same hip hinge, same explosive hip extension, same posterior chain. 5 rounds of 15 at 35lbs is serious cardio.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  kb_farmer_carry:  { name:'KB Farmer Carry (40 steps)', cat:'cardio', loc:BOTH, sets:4, reps:'40 steps', weight:'35lb KBs', rest:60,
+    tip:'Walk tall, core braced, shoulders packed. Builds grip, core, and conditioning simultaneously. One of the highest calorie burn movements per unit of time.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  march_in_place:   { name:'High Knees March', cat:'cardio', loc:BOTH, sets:3, reps:'30 sec', weight:'bodyweight', rest:30,
+    tip:'Drive knees up, pump arms. Low impact cardio filler.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  // Core on cardio day
+  plank:            { name:'Plank Hold', cat:'core', loc:BOTH, sets:3, reps:'40 sec', weight:'bodyweight', rest:45,
+    tip:'Forearms down, squeeze glutes and abs simultaneously. If you can hold for 60 seconds easily, elevate feet or add weight plate on back.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  glute_bridge:     { name:'Glute Bridge', cat:'core', loc:BOTH, sets:3, reps:'20', weight:'bodyweight', rest:40,
+    tip:'Squeeze glutes at top. On cardio day this is activation and recovery work, not loading.',
+    weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+
+  // ── DAY C: UPPER BODY + ARMS
+  // Compound push/pull first, then dedicated arm work at the end
+  // Arm isolation is MORE effective at end of session when muscle is pre-fatigued
+
+  // PUSH — Chest & Shoulders
+  db_incline_press: { name:'DB Incline Press', cat:'push', loc:GYM, sets:3, reps:'10', weight:'30lb DBs', rest:90,
+    tip:'30-45 degree incline. Upper chest and front delt. Better than flat press for shoulder health and aesthetic upper chest development. Lower slowly — 3 seconds down.',
+    weightRec:{ phase1:25, phase2:30, phase3:40, machine:false, unit:'lb' } },
+
+  db_shoulder_press:{ name:'DB Shoulder Press', cat:'push', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:75,
+    tip:'Press to full lockout overhead. Seated for strict form. Do not arch lower back. Shoulders are already your best feature — press keeps them strong and wide.',
+    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
+
+  kb_floor_press:   { name:'KB Floor Press', cat:'push', loc:HOME, sets:3, reps:'10', weight:'35lb KBs', rest:90,
+    tip:'Lie flat, press KBs from floor. Natural range protects shoulders. Home substitute for incline press.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  lateral_raise:    { name:'Lateral Raise', cat:'push', loc:BOTH, sets:3, reps:'15', weight:'15lb DBs', rest:60,
+    tip:'Slow and controlled, slight forward lean, thumbs slightly down. THIS is what makes shoulders look wide from the front. Medial delt — most undertrained part of the shoulder. Keep the weight light and feel the burn.',
+    weightRec:{ phase1:10, phase2:15, phase3:20, machine:false, unit:'lb' } },
+
+  lateral_raise_kb: { name:'Lateral Raise', cat:'push', loc:HOME, sets:3, reps:'15', weight:'15lb KBs', rest:60,
+    tip:'Slow and controlled, slight forward lean, thumbs slightly down. Light weight, full burn. This exercise is what separates good-looking shoulders from ordinary ones.',
+    weightRec:{ phase1:15, phase2:15, phase3:15, machine:false, unit:'lb', kb:true } },
+
+  // PULL — Back
+  lat_pulldown:     { name:'Lat Pulldown', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'70 lbs', rest:90,
+    tip:'ARCHERY TRANSFER: Wide grip, pull to upper chest, hold 1 second squeeze. Same lat engagement as full draw. Builds the V-taper that makes your waist look smaller as your back gets stronger.',
+    weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
+
+  cable_row:        { name:'Seated Cable Row', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'70 lbs', rest:90,
+    tip:'ARCHERY: Pause at contraction for 2 seconds — trains the isometric hold of full draw. Builds back thickness. Pull elbows back past torso, squeeze shoulder blades.',
+    weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
+
+  db_row:           { name:'Single-Arm DB Row', cat:'pull', loc:BOTH, sets:3, reps:'12 each side', weight:'35lb DB', rest:75,
+    tip:'Knee and hand on bench. Pull elbow toward hip pocket, not straight up. Full range — let shoulder blade slide forward at bottom, retract at top.',
+    weightRec:{ phase1:25, phase2:35, phase3:45, machine:false, unit:'lb' } },
+
+  kb_row:           { name:'KB Bent-Over Row', cat:'pull', loc:HOME, sets:3, reps:'12 each side', weight:'35lb KB', rest:75,
+    tip:'Hinge 45 degrees, flat back, pull KB to hip. Keep core tight. Home substitute for cable row.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  face_pull:        { name:'Cable Face Pull', cat:'pull', loc:GYM, sets:3, reps:'15', weight:'25 lbs', rest:60,
+    tip:'ARCHERY/GOLF: Rope attachment, pull to forehead height, elbows high and wide. Rear delt and rotator cuff. This is the most important shoulder health exercise you will do. Do not skip it.',
+    weightRec:{ phase1:20, phase2:25, phase3:35, machine:true, unit:'lb' } },
+
+  // ARM ISOLATION — These go last intentionally
+  // Pre-fatigued muscle responds better to isolation work
+
+  bicep_curl:       { name:'Bicep Curl with Supination', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:60,
+    tip:'Start with palms facing each other, rotate to palms-up as you curl, pinky to ceiling at top. The supination (rotation) at the top contracts the bicep fully and builds the PEAK. Do not swing. Slow down on the way down — 3 second negative. This is where most growth happens.',
+    weightRec:{ phase1:15, phase2:20, phase3:25, machine:false, unit:'lb' } },
+
+  hammer_curl:      { name:'Hammer Curl', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:60,
+    tip:'Palms facing each other throughout. Trains brachialis — the muscle that pushes the bicep UP and makes arms look thicker from the front. Alternating arms. Full extension at bottom.',
+    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
+
+  overhead_tri_ext: { name:'Overhead Tricep Extension', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DB', rest:60,
+    tip:'Hold one DB with both hands overhead, lower behind head, press back up. Long head of tricep — the part that makes arms look big from behind and from the side. This position is the only way to fully stretch the long head. Critical for arm size.',
+    weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+
+  cable_pushdown:   { name:'Tricep Cable Pushdown', cat:'arms', loc:GYM, sets:3, reps:'15', weight:'40 lbs', rest:60,
+    tip:'Rope or straight bar. Elbows locked at sides, push down to full lockout, squeeze for 1 second. Lateral head of tricep — the horseshoe shape on the outside of the arm. 2/3 of upper arm size is tricep.',
+    weightRec:{ phase1:30, phase2:40, phase3:55, machine:true, unit:'lb' } },
+
+  kb_overhead_ext:  { name:'KB Overhead Tricep Extension', cat:'arms', loc:HOME, sets:3, reps:'12', weight:'25lb KB', rest:60,
+    tip:'Both hands on one KB overhead, lower behind head, press back up. Fully stretches the long head of tricep — the mass builder. Do not flare elbows out.',
+    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb', kb:true } },
+
+  // WRIST & FOREARM STABILITY (Golf and Archery specific)
+  wrist_curl:       { name:'Wrist Curl & Extension', cat:'arms', loc:BOTH, sets:2, reps:'15 each direction', weight:'15lb DB', rest:30,
+    tip:'GOLF/ARCHERY: Forearms on thighs, curl wrists up then reverse. Wrist stability is the difference between consistent ball striking and flipping at impact. Also prevents the common archer elbow issue. You already have thick forearms — this is maintenance.',
+    weightRec:{ phase1:10, phase2:15, phase3:15, machine:false, unit:'lb' } },
+
+  // ROTATOR CUFF (Archery essential)
+  band_rotation:    { name:'Cable External Rotation', cat:'arms', loc:GYM, sets:2, reps:'15 each side', weight:'10 lbs', rest:30,
+    tip:'ARCHERY: Elbow at 90 degrees, rotate outward against cable resistance. This is the exact motion of archery draw. Prevents rotator cuff impingement which is the most common archery injury. Keep this weight light — it is rehabilitation-level loading.',
+    weightRec:{ phase1:10, phase2:10, phase3:15, machine:true, unit:'lb' } },
 };
 
 // ── WORKOUT PLANS ────────────────────────────────────────────────────
@@ -1825,32 +1915,34 @@ const EXERCISES = {
 
 function getNextWorkoutType(d) {
   const logs = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
-  const lastType = logs.length ? logs[0].type : '';
-  if (!lastType || lastType.includes('Cardio')) return 'strength_a';
-  if (lastType.includes('Strength A') || lastType.includes('Day 1')) return 'cardio';
-  if (lastType.includes('Cardio') || lastType.includes('Day 2')) return 'strength_b';
+  const lastType = logs[0]?.type || '';
+  if (!lastType || lastType.includes('Cardio') || lastType.includes('Day B')) return 'strength_a';
+  if (lastType.includes('Day A') || lastType.includes('Strength A')) return 'cardio';
+  if (lastType.includes('Day C') || lastType.includes('Strength C')) return 'strength_a';
   return 'strength_a';
 }
 
-// Fitness level based on total workouts logged
-// Phase 1 (0-5):   Brand new — reduced sets, lighter cues, longer rest, movement pattern focus
-// Phase 2 (6-12):  Building — standard beginner volume, starting to push
-// Phase 3 (13+):   Established — full volume, progressive overload emphasis
-function getFitnessPhase(d) {
-  const count = d.workoutLogs.length;
-  if (count <= 5)  return { phase: 1, label: 'Week 1–2', count };
-  if (count <= 12) return { phase: 2, label: 'Week 3–5', count };
-  return               { phase: 3, label: 'Week 6+',  count };
+// Which variant (1-4) to use for a given day type
+// Cycles through 4 versions so no repeat for 4 weeks
+function getWorkoutVariant(dayType, d) {
+  const logs = [...d.workoutLogs].sort((a,b) => new Date(a.date)-new Date(b.date));
+  // Count how many times this day type has been done
+  const count = logs.filter(l => l.type && l.type.includes(dayType)).length;
+  return (count % 4) + 1; // 1, 2, 3, 4, 1, 2, 3, 4...
 }
 
-// Scale exercise sets and reps down for phase 1
+function getFitnessPhase(d) {
+  const count = d.workoutLogs.length;
+  if (count <= 5)  return { phase: 1, label: 'Week 1-2', count };
+  if (count <= 12) return { phase: 2, label: 'Week 3-5', count };
+  return               { phase: 3, label: 'Week 6+', count };
+}
+
 function scaleForPhase(ex, phase) {
   const e = {...ex};
   if (phase === 1) {
-    e.sets = Math.max(2, e.sets - 1); // 3 sets → 2 sets
-    // Simplify reps for clarity
-    e.reps = e.reps.replace('12', '10').replace('15', '12').replace('10-12','8-10');
-    e.rest = Math.round(e.rest * 1.25); // more rest between sets
+    e.sets = Math.max(2, e.sets - 1);
+    e.rest = Math.round(e.rest * 1.25);
   }
   return e;
 }
@@ -1864,29 +1956,31 @@ function generateWorkout() {
   const phaseInfo = getFitnessPhase(d);
 
   let plan;
-
   if (wType === 'cardio') {
-    plan = buildCardioWorkout(mins, isGym, phaseInfo);
+    const variant = getWorkoutVariant('Day B', d);
+    plan = buildCardioWorkout(mins, isGym, phaseInfo, variant);
   } else if (wType === 'strength_a') {
-    plan = buildStrengthAWorkout(mins, isGym, phaseInfo);
+    const variant = getWorkoutVariant('Day A', d);
+    plan = buildDayA(mins, isGym, phaseInfo, variant);
   } else {
-    plan = buildStrengthBWorkout(mins, isGym, phaseInfo);
+    const variant = getWorkoutVariant('Day C', d);
+    plan = buildDayC(mins, isGym, phaseInfo, variant);
   }
 
-  // Render plan card
   renderWorkoutPlan(plan, phaseInfo);
 
-  // Load exercises into log form
   document.getElementById('wo-type').value = plan.title;
   document.getElementById('exercise-rows').innerHTML = '';
   plan.exercises.forEach(ex => {
     const row = document.createElement('div');
     row.className = 'exercise-row';
+    const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d);
+    const suggestedWeight = weightRec && !weightRec.isBW ? weightRec.lbs : '';
     row.innerHTML = `
       <input type="text" value="${ex.name}" class="ex-name">
       <input type="number" value="${ex.sets}" class="ex-sets" min="1">
       <input type="text" value="${ex.reps}" class="ex-reps">
-      <input type="text" value="${ex.weight !== 'bodyweight' ? ex.weight : ''}" placeholder="lbs" class="ex-weight">
+      <input type="text" value="${suggestedWeight}" placeholder="lbs" class="ex-weight">
       <button class="btn btn-danger" onclick="this.parentElement.remove()">✕</button>
     `;
     document.getElementById('exercise-rows').appendChild(row);
@@ -1896,182 +1990,364 @@ function generateWorkout() {
   document.getElementById('wo-plan').style.display = 'block';
 }
 
-function buildStrengthAWorkout(mins, isGym, phaseInfo) {
+// ═══════════════════════════════════════════════════════════════
+// DAY A — LOWER BODY + CORE (4 variants)
+// All 4 hit the same muscle groups via different movement patterns
+// Same progressive overload, different stimulus = better adaptation
+// ═══════════════════════════════════════════════════════════════
+
+function buildDayA(mins, isGym, phaseInfo, variant) {
   const E = EXERCISES;
   const { phase } = phaseInfo;
-  let exercises = [], notes = '';
 
+  // Phase 1 is always the same intro regardless of variant
   if (phase === 1) {
-    exercises = [
-      isGym ? E.leg_press : E.goblet_squat,
-      isGym ? E.db_chest_press : E.pushup,
-      E.glute_bridge,
-      E.dead_bug,
+    const exercises = [
+      E.goblet_squat, E.single_leg_rdl, E.hip_thrust, E.dead_bug, E.bird_dog
     ].map(e => scaleForPhase(e, 1));
-    notes = 'Workout #' + (phaseInfo.count + 1) + ' — You are brand new. 4 exercises, 2 sets each. Your only job today is to learn the movements and finish. Do not push to failure. Leave something in the tank.';
-  } else if (mins <= 20) {
-    exercises = [
-      isGym ? E.leg_press : E.goblet_squat,
-      isGym ? E.db_chest_press : E.kb_floor_press,
-      E.plank,
-      E.glute_bridge,
-    ].map(e => ({...e, sets: 2}));
-    notes = '20 min: 4 exercises, 2 sets each, 60 sec rest. Move fast — this is a fat-burn circuit.';
-  } else if (mins <= 30) {
-    exercises = [
-      isGym ? E.leg_press : E.goblet_squat,
-      E.reverse_lunge,
-      isGym ? E.db_chest_press : E.kb_floor_press,
-      E.db_shoulder_press,
-      E.plank,
-      E.dead_bug,
-    ];
-    notes = '30 min: 6 exercises, 3 sets each, 75 sec rest. Focus on form — heavier isn\'t better if form breaks.';
-  } else if (mins <= 45) {
-    exercises = [
-      isGym ? E.leg_press : E.goblet_squat,
-      E.reverse_lunge,
-      isGym ? E.db_chest_press : E.kb_floor_press,
-      E.db_shoulder_press,
-      E.pushup,
-      E.glute_bridge,
-      E.plank,
-      E.dead_bug,
-    ];
-    notes = '45 min: Full strength session. Rest 90 sec on leg exercises, 75 sec on upper body.';
-  } else {
-    exercises = [
-      isGym ? E.leg_press : E.goblet_squat,
-      E.reverse_lunge,
-      isGym ? E.step_up : E.kb_sumo_squat,
-      isGym ? E.db_chest_press : E.kb_floor_press,
-      E.db_shoulder_press,
-      E.pushup,
-      E.tricep_dip,
-      E.glute_bridge,
-      E.plank,
-      E.dead_bug,
-      E.bird_dog,
-    ];
-    notes = '60 min: Full volume. This burns 400-500 calories. Start lighter than you think.';
+    return {
+      title: 'Day A — Lower Body + Core',
+      type: 'Strength A (Day A)',
+      focus: 'Legs · Glutes · Core · Golf/Archery',
+      calBurn: '150-220',
+      exercises,
+      notes: 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Learn the hip hinge on single-leg RDL — it is the foundation of your golf power.',
+      location: isGym ? 'Full Gym' : 'Home',
+      variant: 1
+    };
   }
 
+  const variants = {
+    // VARIANT 1: Hip Hinge Focus — most golf transfer
+    1: {
+      label: 'Hip Hinge & Glute Focus',
+      note: 'Posterior chain emphasis — glutes, hamstrings, hinge pattern. Most transferable to golf swing power. Rest 90s on loaded movements.',
+      gym: [E.leg_press, E.single_leg_rdl, E.hip_thrust, E.pallof_press, E.dead_bug, E.bird_dog, E.plank],
+      home: [E.goblet_squat, E.single_leg_rdl, E.hip_thrust, E.pallof_press_home, E.dead_bug, E.bird_dog, E.plank],
+    },
+    // VARIANT 2: Quad & Lunge Focus — single leg stability
+    2: {
+      label: 'Quad Strength & Balance',
+      note: 'Lunge pattern builds single-leg stability critical for golf stance and archery draw position. Harder than it looks — control is everything.',
+      gym: [
+        { ...E.leg_press, reps:'15', sets:4 },
+        { name:'Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee tracks over toe, control descent. Builds the single-leg stability of your golf backswing.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Lateral Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DB', rest:75, tip:'Step wide to the side, sit into the hip, drive back. Trains the lateral movement pattern used in golf footwork.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        E.glute_bridge,
+        E.pallof_press,
+        E.dead_bug,
+      ],
+      home: [
+        E.goblet_squat,
+        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee toward floor, drive through front heel.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Lateral Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'bodyweight', rest:75, tip:'Wide step to the side, sit into the hip, keep chest tall.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+        E.glute_bridge,
+        E.pallof_press_home,
+        E.dead_bug,
+      ],
+    },
+    // VARIANT 3: Power & Explosiveness — athletic development
+    3: {
+      label: 'Power & Athletic Development',
+      note: 'Explosive movements build the fast-twitch power that drives golf distance. Controlled on the way down, explosive on the way up.',
+      gym: [
+        { name:'Box Step-Up', cat:'legs', loc:GYM, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'GOLF: Explosive drive through the heel mirrors the push from the ground in the downswing. Step up fast, lower slow.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Sumo Squat to Stand', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging, squat deep, stand explosively. Hip mobility and power combined.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        E.hip_thrust,
+        E.single_leg_rdl,
+        E.pallof_press,
+        E.bird_dog,
+        E.dead_bug,
+      ],
+      home: [
+        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'bodyweight', rest:90, tip:'Use a sturdy chair or step. Explosive drive up, slow on the way down.', weightRec:{ phase1:0, phase2:0, phase3:25, machine:false, unit:'bw', bw_first:true } },
+        { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        E.hip_thrust,
+        E.single_leg_rdl,
+        E.pallof_press_home,
+        E.bird_dog,
+        E.dead_bug,
+      ],
+    },
+    // VARIANT 4: High Rep Conditioning — fat loss accelerator
+    4: {
+      label: 'Conditioning Circuit',
+      note: 'Higher reps, shorter rest, elevated heart rate throughout. Burns more calories than standard strength work. You will be breathing hard. That is the point.',
+      gym: [
+        { name:'Leg Press High Rep', cat:'legs', loc:GYM, sets:4, reps:'20', weight:'70 lbs', rest:60, tip:'Lighter weight, more reps, shorter rest. Metabolic conditioning — heart rate elevated the whole time.', weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
+        { name:'Walking Lunge', cat:'legs', loc:GYM, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement, no pausing. More aerobic demand than static lunges.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { ...E.hip_thrust, reps:'20', sets:3 },
+        E.kb_farmer_carry,
+        { ...E.plank, reps:'50 sec', sets:3 },
+        E.dead_bug,
+      ],
+      home: [
+        { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        { name:'Walking Lunge', cat:'legs', loc:HOME, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement forward. More aerobic than static lunges.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { ...E.hip_thrust, reps:'20', sets:3 },
+        E.kb_farmer_carry,
+        { ...E.plank, reps:'50 sec', sets:3 },
+        E.dead_bug,
+      ],
+    },
+  };
+
+  const v = variants[variant];
+  let exercises = isGym ? [...v.gym] : [...v.home];
+
+  // Scale exercise count to time
+  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:2}));
+  else if (mins <= 30) exercises = exercises.slice(0,4);
+  else if (mins <= 45) exercises = exercises.slice(0,6);
+  // 60+ gets full list
+
   return {
-    title: 'Strength A — Legs & Push',
-    type: 'Strength A (Legs + Push + Core)',
-    focus: 'Legs · Chest · Shoulders · Core',
-    calBurn: phase === 1 ? '150-220' : mins <= 20 ? '200-280' : mins <= 30 ? '280-350' : mins <= 45 ? '350-420' : '420-520',
-    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
+    title: 'Day A — ' + v.label,
+    type: 'Strength A (Day A)',
+    focus: 'Legs · Glutes · Core · Golf/Archery',
+    calBurn: mins <= 20 ? '220-300' : mins <= 30 ? '300-380' : mins <= 45 ? '380-460' : '460-560',
+    exercises, notes: v.note,
+    location: isGym ? 'Full Gym' : 'Home',
+    variant
   };
 }
 
-function buildStrengthBWorkout(mins, isGym, phaseInfo) {
+// ═══════════════════════════════════════════════════════════════
+// DAY B — CARDIO + CONDITIONING (4 variants)
+// ═══════════════════════════════════════════════════════════════
+
+function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   const E = EXERCISES;
   const { phase } = phaseInfo;
-  let exercises = [], notes = '';
 
   if (phase === 1) {
-    exercises = [
-      isGym ? E.lat_pulldown : E.kb_row,
-      isGym ? E.seated_row : E.db_row,
-      E.glute_bridge,
-      E.bird_dog,
-    ].map(e => scaleForPhase(e, 1));
-    notes = 'Workout #' + (phaseInfo.count + 1) + ' — Still early. 4 exercises, 2 sets. Focus on the hinge pattern — push hips back, not knees forward.';
-  } else if (mins <= 20) {
-    exercises = [
-      isGym ? E.seated_row : E.kb_row,
-      isGym ? E.lat_pulldown : E.db_row,
-      E.dead_bug, E.bird_dog,
-    ].map(e => ({...e, sets: 2}));
-    notes = '20 min express: 2 sets each, 60 sec rest.';
-  } else if (mins <= 30) {
-    exercises = [
-      isGym ? E.seated_row : E.kb_row,
-      isGym ? E.lat_pulldown : E.db_row,
-      isGym ? E.db_rdl : E.kb_deadlift,
-      E.hip_thrust, E.plank, E.dead_bug,
-    ];
-    notes = '30 min: Prioritizing hinge pattern — hamstrings and glutes = most calorie burn.';
-  } else if (mins <= 45) {
-    exercises = [
-      isGym ? E.lat_pulldown : E.kb_row,
-      isGym ? E.seated_row : E.db_row,
-      isGym ? E.db_rdl : E.kb_deadlift,
-      E.hip_thrust,
-      isGym ? E.face_pull_band : E.kb_farmer_carry,
-      E.glute_bridge, E.plank, E.dead_bug,
-    ];
-    notes = '45 min: This hits your posterior chain hard. Expect to feel it for 2 days.';
-  } else {
-    exercises = [
-      isGym ? E.lat_pulldown : E.kb_row,
-      isGym ? E.seated_row : E.db_row,
-      isGym ? E.db_row : E.kb_row,
-      isGym ? E.db_rdl : E.kb_deadlift,
-      E.hip_thrust, E.step_up,
-      isGym ? E.face_pull_band : E.kb_farmer_carry,
-      E.glute_bridge, E.plank, E.dead_bug, E.bird_dog,
-    ];
-    notes = '60 min: High volume pull session. Muscle = faster metabolism = faster fat loss.';
+    const exercises = isGym
+      ? [ { ...E.treadmill_walk, reps:'15 min', sets:1 }, E.glute_bridge, E.dead_bug ]
+      : [ { ...E.kb_swing, sets:3 }, E.kb_farmer_carry, E.dead_bug ];
+    return {
+      title: 'Day B — Cardio + Core',
+      type: 'Cardio + Core (Day B)',
+      focus: 'Fat Burn · Heart Rate · Core',
+      calBurn: '150-220',
+      exercises: exercises.map(e => scaleForPhase(e, 1)),
+      notes: 'Intro cardio. Moderate pace, focus on breathing. This adapts in 2 weeks then we push harder.',
+      location: isGym ? 'Full Gym' : 'Home',
+      variant: 1
+    };
   }
 
+  const cardioMins = Math.max(15, mins - 10);
+
+  const variants = {
+    // VARIANT 1: Steady State — fat oxidation focus
+    1: {
+      label: 'Steady State Cardio',
+      note: 'Sustained moderate intensity. Stays in the fat-burning zone. The most efficient calorie burn per unit of joint stress at your current weight.',
+      gym: [ { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 }, E.plank, E.dead_bug, E.bird_dog, E.glute_bridge ],
+      home: [ { ...E.kb_swing, sets:5 }, E.kb_farmer_carry, E.march_in_place, E.plank, E.dead_bug ],
+    },
+    // VARIANT 2: Cross Training — multiple machines
+    2: {
+      label: 'Cross Training',
+      note: 'Alternating between machines reduces joint fatigue and hits different muscles. Rower is direct archery training. Keep transitions under 60 seconds.',
+      gym: [
+        { ...E.treadmill_walk, reps: Math.round(cardioMins * 0.45) + ' min', sets:1 },
+        { ...E.rowing_machine, reps: Math.round(cardioMins * 0.35) + ' min', sets:1 },
+        { ...E.stationary_bike, reps: Math.round(cardioMins * 0.2) + ' min', sets:1 },
+        E.plank, E.dead_bug,
+      ],
+      home: [ { ...E.kb_swing, sets:4 }, E.kb_farmer_carry, { ...E.march_in_place, sets:4 }, E.plank, E.dead_bug, E.bird_dog ],
+    },
+    // VARIANT 3: Interval Training — metabolic spike
+    3: {
+      label: 'Interval Conditioning',
+      note: 'Intervals spike your metabolic rate for hours after the session — called EPOC. 2 min moderate then 1 min harder, repeat. More fat burned in less time than steady state.',
+      gym: [
+        { name:'Treadmill Intervals', cat:'cardio', loc:GYM, sets:6, reps:'2 min easy / 1 min harder', weight:'3.5mph flat then 4mph 6% incline', rest:0, tip:'2 minutes at 3.5mph / 4% incline. Then 1 minute at 4mph / 6% incline. Repeat 6 rounds. Do not run — incline is the intensity lever.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
+        E.plank, E.dead_bug, E.glute_bridge,
+      ],
+      home: [
+        { name:'KB Swing Intervals', cat:'cardio', loc:HOME, sets:6, reps:'20 swings / 30 sec rest', weight:'35lb KB', rest:30, tip:'20 swings at full power. 30 second rest. 6 rounds. This is genuinely hard. That is what intervals are supposed to feel like.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        E.kb_farmer_carry, E.plank, E.dead_bug,
+      ],
+    },
+    // VARIANT 4: Loaded Carries & Conditioning — functional fat loss
+    4: {
+      label: 'Functional Conditioning',
+      note: 'Loaded carries and circuit work. Builds strength and cardio simultaneously. Grip, core, and conditioning in one session. The KB farmer carry is one of the highest calorie exercises per unit of time that exists.',
+      gym: [
+        { ...E.treadmill_walk, reps:'15 min', sets:1 },
+        { name:'Sled Push / Rower', cat:'cardio', loc:GYM, sets:4, reps:'45 sec', weight:'moderate resistance', rest:60, tip:'If sled available: push hard for 45 sec. Otherwise: rowing machine at hard effort for 45 sec. Explosive, not sustainable.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:true, unit:'bw' } },
+        E.kb_farmer_carry,
+        E.plank,
+        E.dead_bug,
+        E.bird_dog,
+      ],
+      home: [
+        { ...E.kb_swing, sets:4, reps:'20' },
+        { ...E.kb_farmer_carry, sets:5, reps:'50 steps' },
+        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Total body — burns more calories than almost any exercise.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        E.plank,
+        E.dead_bug,
+      ],
+    },
+  };
+
+  const v = variants[variant];
+  let exercises = isGym ? [...v.gym] : [...v.home];
+
+  if (mins <= 20) exercises = exercises.slice(0,3);
+  else if (mins <= 30) exercises = exercises.slice(0,4);
+  else if (mins <= 45) exercises = exercises.slice(0,5);
+
   return {
-    title: 'Strength B — Pull & Hinge',
-    type: 'Strength B (Pull + Hinge + Core)',
-    focus: 'Back · Hamstrings · Glutes · Core',
-    calBurn: phase === 1 ? '140-200' : mins <= 20 ? '190-260' : mins <= 30 ? '270-340' : mins <= 45 ? '340-420' : '420-500',
-    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
+    title: 'Day B — ' + v.label,
+    type: 'Cardio + Core (Day B)',
+    focus: 'Fat Burn · Heart Rate · Conditioning',
+    calBurn: mins <= 20 ? '220-310' : mins <= 30 ? '310-400' : mins <= 45 ? '400-500' : '500-620',
+    exercises, notes: v.note,
+    location: isGym ? 'Full Gym' : 'Home',
+    variant
   };
 }
 
-function buildCardioWorkout(mins, isGym, phaseInfo) {
+// ═══════════════════════════════════════════════════════════════
+// DAY C — UPPER BODY + ARMS (4 variants)
+// ═══════════════════════════════════════════════════════════════
+
+function buildDayC(mins, isGym, phaseInfo, variant) {
   const E = EXERCISES;
   const { phase } = phaseInfo;
-  let exercises = [], notes = '';
 
   if (phase === 1) {
-    const walkMins = Math.min(mins - 5, 15);
-    exercises = isGym
-      ? [ { ...E.treadmill_walk, reps: walkMins + ' min', sets: 1 }, E.dead_bug, E.glute_bridge, E.bird_dog ]
-      : [ E.march_in_place, E.glute_bridge, E.dead_bug, E.bird_dog ];
-    exercises = exercises.map(e => scaleForPhase(e, 1));
-    notes = 'Workout #' + (phaseInfo.count + 1) + ' — Cardio day. ' + (isGym ? 'Walk ' + walkMins + ' min at 3.0mph flat — no incline yet.' : 'March in place 3x30 sec.') + ' Your cardio system needs to adapt before we push pace.';
-  } else if (mins <= 20) {
-    exercises = isGym
-      ? [ E.march_in_place, E.bike, E.dead_bug, E.glute_bridge ]
-      : [ E.kb_swing, E.march_in_place, E.dead_bug, E.glute_bridge ];
-    exercises = exercises.map(e => ({...e, sets: 2}));
-    notes = '20 min cardio: Short but effective.';
-  } else if (mins <= 30) {
-    exercises = isGym
-      ? [ { ...E.treadmill_walk, reps:'20 min', sets:1 }, E.dead_bug, E.glute_bridge, E.bird_dog ]
-      : [ E.kb_swing, E.march_in_place, E.kb_farmer_carry, E.dead_bug, E.glute_bridge ];
-    notes = '30 min: Incline walk then core at gym. KB circuit at home.';
-  } else if (mins <= 45) {
-    exercises = isGym
-      ? [ { ...E.treadmill_walk, reps:'25 min', sets:1 }, E.row_machine, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank ]
-      : [ E.kb_swing, E.kb_sumo_squat, E.kb_farmer_carry, E.march_in_place, E.dead_bug, E.glute_bridge, E.bird_dog ];
-    notes = '45 min cardio: Incline walk + rowing is one of the highest cal burns without running.';
-  } else {
-    exercises = isGym
-      ? [ { ...E.treadmill_walk, reps:'30 min', sets:1 }, { ...E.bike, reps:'15 min', sets:1 }, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank, E.kb_farmer_carry ]
-      : [ E.kb_swing, E.kb_sumo_squat, E.kb_farmer_carry, E.march_in_place, E.jump_rope_alt, E.dead_bug, E.glute_bridge, E.bird_dog, E.plank ];
-    notes = '60 min cardio: This burns 500+ calories.';
+    const exercises = [
+      isGym ? E.db_incline_press : E.kb_floor_press,
+      isGym ? E.lat_pulldown : E.kb_row,
+      E.bicep_curl,
+      E.overhead_tri_ext,
+    ].map(e => scaleForPhase(e, 1));
+    return {
+      title: 'Day C — Upper Body + Arms',
+      type: 'Strength C (Day C)',
+      focus: 'Chest · Back · Shoulders · Arms',
+      calBurn: '140-200',
+      exercises,
+      notes: 'Session ' + (phaseInfo.count + 1) + ' — Upper body intro. Feel the muscle, do not chase weight.',
+      location: isGym ? 'Full Gym' : 'Home',
+      variant: 1
+    };
   }
 
+  const variants = {
+    // VARIANT 1: Classic Push/Pull + Arm Blast
+    1: {
+      label: 'Push / Pull + Arm Blast',
+      note: 'Horizontal push and pull supersetted — saves time and spikes heart rate. Arms at the end when pre-fatigued. The bicep supination curl is non-negotiable for peak development.',
+      gym: [ E.db_incline_press, E.lat_pulldown, E.db_shoulder_press, E.cable_row, E.face_pull, E.lateral_raise, E.bicep_curl, E.hammer_curl, E.cable_pushdown, E.overhead_tri_ext ],
+      home: [ E.kb_floor_press, E.kb_row, E.db_shoulder_press, E.lateral_raise_kb, E.bicep_curl, E.hammer_curl, E.kb_overhead_ext, E.overhead_tri_ext ],
+    },
+    // VARIANT 2: Vertical Push/Pull + Superset Arms
+    2: {
+      label: 'Vertical Push/Pull + Arms',
+      note: 'Overhead pressing and pull-down patterns. Different shoulder and lat angle than variant 1. Lateral raises are the key to the wide-shoulder look from the front — do them every upper session.',
+      gym: [
+        E.db_shoulder_press,
+        E.lat_pulldown,
+        { name:'Arnold Press', cat:'push', loc:GYM, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads in one movement. Named after the greatest of all time.', weightRec:{ phase1:15, phase2:25, phase3:30, machine:false, unit:'lb' } },
+        E.cable_row,
+        E.lateral_raise,
+        E.face_pull,
+        E.bicep_curl,
+        E.hammer_curl,
+        E.cable_pushdown,
+      ],
+      home: [
+        E.db_shoulder_press,
+        E.kb_row,
+        { name:'Arnold Press', cat:'push', loc:HOME, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads.', weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        E.lateral_raise_kb,
+        E.bicep_curl,
+        E.hammer_curl,
+        E.kb_overhead_ext,
+      ],
+    },
+    // VARIANT 3: High Intensity Upper — tempo and pause reps
+    3: {
+      label: 'Tempo & Pause Upper Body',
+      note: 'Slow eccentrics (3 seconds down) and paused reps at the bottom. Harder than it looks. This creates significantly more muscle damage and growth stimulus than regular tempo. Same weights, more results.',
+      gym: [
+        { ...E.db_incline_press, tip:'3 seconds down, pause 1 second at bottom, press up. Slower eccentric = more time under tension = more growth signal.', reps:'10 slow' },
+        { ...E.lat_pulldown, tip:'3 seconds down, hold at bottom for 1 second. Your lats will fail faster than usual. That is the point.', reps:'10 slow' },
+        E.lateral_raise,
+        { ...E.cable_row, tip:'Pause 2 seconds at full contraction. Squeeze shoulder blades hard.', reps:'12 with pause' },
+        E.face_pull,
+        { ...E.bicep_curl, tip:'3 seconds down on every rep. Forearm should burn. Full extension at bottom.', reps:'12 slow' },
+        { ...E.overhead_tri_ext, tip:'3 seconds down, full stretch at bottom. Long head fully loaded under stretch.', reps:'12 slow' },
+        E.cable_pushdown,
+        E.wrist_curl,
+      ],
+      home: [
+        { ...E.kb_floor_press, tip:'3 seconds down, pause at bottom, press up.', reps:'10 slow' },
+        { ...E.db_row, tip:'3 seconds down, hold contraction for 2 seconds at top.', reps:'10 slow with pause' },
+        E.lateral_raise_kb,
+        { ...E.bicep_curl, tip:'3 seconds down on every rep. Full extension at bottom.', reps:'12 slow' },
+        { ...E.kb_overhead_ext, tip:'3 seconds down, full stretch behind head.', reps:'12 slow' },
+        E.overhead_tri_ext,
+        E.wrist_curl,
+      ],
+    },
+    // VARIANT 4: Volume Upper — higher reps, arm specialization
+    4: {
+      label: 'Volume Day — Arm Specialization',
+      note: 'Higher rep ranges and extra arm sets today. Arms respond well to occasional volume spikes. The incline DB curl at the end is the most effective bicep peak exercise — the stretch position under load is what builds the peak.',
+      gym: [
+        { ...E.db_incline_press, reps:'15', sets:4 },
+        { ...E.lat_pulldown, reps:'15', sets:4 },
+        E.lateral_raise,
+        E.face_pull,
+        { ...E.bicep_curl, reps:'15', sets:4 },
+        { name:'Incline DB Curl', cat:'arms', loc:GYM, sets:3, reps:'12', weight:'20lb DBs', rest:60, tip:'Sit on incline bench, arms hang behind body, curl up. This fully stretches the bicep at the start position — the most effective position for bicep peak development. Lower slowly.', weightRec:{ phase1:12, phase2:20, phase3:25, machine:false, unit:'lb' } },
+        { ...E.hammer_curl, reps:'15', sets:3 },
+        { ...E.cable_pushdown, reps:'20', sets:4 },
+        { ...E.overhead_tri_ext, reps:'15', sets:3 },
+        E.wrist_curl,
+      ],
+      home: [
+        { ...E.kb_floor_press, reps:'15', sets:4 },
+        { ...E.kb_row, reps:'15', sets:4 },
+        E.lateral_raise_kb,
+        { ...E.bicep_curl, reps:'15', sets:4 },
+        { ...E.hammer_curl, reps:'15', sets:3 },
+        { ...E.kb_overhead_ext, reps:'15', sets:3 },
+        { ...E.overhead_tri_ext, reps:'15', sets:3 },
+        E.wrist_curl,
+      ],
+    },
+  };
+
+  const v = variants[variant];
+  let exercises = isGym ? [...v.gym] : [...v.home];
+
+  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  else if (mins <= 30) exercises = exercises.slice(0,5);
+  else if (mins <= 45) exercises = exercises.slice(0,7);
+  // 60+ gets full list
+
   return {
-    title: 'Cardio + Core Day',
-    type: 'Cardio + Core',
-    focus: 'Fat Burn · Heart Rate · Core Stability',
-    calBurn: phase === 1 ? '100-180' : mins <= 20 ? '200-300' : mins <= 30 ? '300-380' : mins <= 45 ? '380-480' : '480-600',
-    exercises, notes, location: isGym ? 'Full Gym' : 'Home'
+    title: 'Day C — ' + v.label,
+    type: 'Strength C (Day C)',
+    focus: 'Chest · Back · Shoulders · Biceps · Triceps',
+    calBurn: mins <= 20 ? '200-270' : mins <= 30 ? '270-350' : mins <= 45 ? '350-430' : '430-530',
+    exercises, notes: v.note,
+    location: isGym ? 'Full Gym' : 'Home',
+    variant
   };
 }
 
 function renderWorkoutPlan(plan, phaseInfo) {
   const card = document.getElementById('wo-plan-card');
   const { phase, count } = phaseInfo;
+  const d = getData();
   const phaseColors = { 1: 'var(--yellow)', 2: 'var(--accent)', 3: 'var(--green)' };
   const phaseLabels = {
     1: '🌱 Beginner Phase — workout ' + (count + 1) + ' of your first 6',
@@ -2079,9 +2355,9 @@ function renderWorkoutPlan(plan, phaseInfo) {
     3: '💪 Established — workout #' + (count + 1)
   };
   const phaseMessages = {
-    1: 'Volume is intentionally reduced. Your joints, tendons, and nervous system need 2-3 weeks to adapt. Finish every set with form intact — that is the only goal right now.',
-    2: 'You have built the foundation. Full volume now. Start tracking weights so we can push progressive overload.',
-    3: 'Past the beginner phase. If a weight feels easy by set 3, go heavier next session. Progress = beat your last numbers.'
+    1: 'Volume is intentionally reduced. Your only job is to learn the movements and finish. Do not push to failure.',
+    2: 'Full volume now. Every session track your weights — progressive overload is the mechanism of strength.',
+    3: 'Beat your last numbers. If the recommended weight feels easy by set 3, note it and we go heavier next time.'
   };
 
   card.innerHTML = `
@@ -2101,24 +2377,62 @@ function renderWorkoutPlan(plan, phaseInfo) {
       <div style="font-size:13px;color:var(--text);line-height:1.5">${phaseMessages[phase]}</div>
     </div>
     <div class="alert alert-blue" style="margin-bottom:16px">📋 ${plan.notes}</div>
-    ${plan.exercises.map((ex, i) => `
-      <div class="ex-block">
+
+    ${plan.exercises.map((ex, i) => {
+      const weightRec = getWeightRecommendation(ex.name, phase, d);
+      const isCardio = ex.cat === 'cardio';
+      const isBW = weightRec?.isBW;
+
+      return `
+      <div class="ex-block" style="margin-bottom:12px">
         <div class="ex-block-header">
-          <div>
+          <div style="flex:1">
             <div class="ex-name-big">${i+1}. ${ex.name}</div>
-            <div class="ex-detail">${ex.sets} sets · ${ex.reps} · ${ex.weight}${ex.rest ? ' · rest ' + ex.rest + 's' : ''}</div>
+            <div class="ex-detail">${ex.sets} sets · ${ex.reps}</div>
           </div>
+          ${!isCardio ? `
+          <div style="text-align:right">
+            <div style="font-family:var(--mono);font-size:18px;font-weight:700;color:${weightRec?.direction === '▲' ? 'var(--green)' : weightRec?.direction === '▼' ? 'var(--red)' : 'var(--accent)'}">${weightRec?.text || ex.weight}</div>
+            ${weightRec?.direction ? `<div style="font-size:11px;color:var(--muted)">${weightRec.direction} ${weightRec.note}</div>` : weightRec?.note ? `<div style="font-size:11px;color:var(--muted)">${weightRec.note}</div>` : ''}
+          </div>` : ''}
         </div>
+
         ${ex.tip ? `<div class="ex-tip">💡 ${ex.tip}</div>` : ''}
+
+        ${!isCardio && !isBW ? `
+        <div style="display:flex;gap:6px;padding:10px 14px;border-top:1px solid var(--border);background:rgba(0,0,0,0.1)">
+          <span style="font-size:12px;color:var(--muted);align-self:center;flex:1">Next session:</span>
+          <button onclick="setExerciseFeedback('${ex.name.replace(/'/g,"\\'")}','down')"
+            style="background:rgba(239,68,68,0.15);border:1px solid var(--red);color:var(--red);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">
+            ▼ Less
+          </button>
+          <button onclick="setExerciseFeedback('${ex.name.replace(/'/g,"\\'")}','hold')"
+            style="background:rgba(100,116,139,0.15);border:1px solid var(--muted);color:var(--muted);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">
+            → Same
+          </button>
+          <button onclick="setExerciseFeedback('${ex.name.replace(/'/g,"\\'")}','up')"
+            style="background:rgba(34,197,94,0.15);border:1px solid var(--green);color:var(--green);border-radius:6px;padding:5px 12px;font-size:13px;font-weight:700;cursor:pointer;font-family:var(--font)">
+            ▲ More
+          </button>
+        </div>` : ''}
+
+        ${ex.rest > 0 ? `
+        <div style="padding:8px 14px;border-top:1px solid var(--border)">
+          <button id="rest-btn-${i}" onclick="startRestTimer(${ex.rest}, this)"
+            style="width:100%;background:rgba(59,130,246,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s">
+            ⏱ Start ${ex.rest}s rest timer
+          </button>
+        </div>` : ''}
       </div>
-      ${ex.rest && i < plan.exercises.length-1 ? `<div class="rest-block">⏱ Rest ${ex.rest}s before next exercise</div>` : ''}
-    `).join('')}
-    <div style="margin-top:16px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
-      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px">Log Your Numbers Below</div>
-      <div style="font-size:13px;color:var(--text);line-height:1.6">${phase === 1 ? "Don't worry about weight right now. Write BW for bodyweight or light - just finish the sets." : "Record every weight. Next session the coach can tell you if you are progressing or stalling." }</div>
+    `}).join('')}
+
+    <div style="margin-top:4px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">After each exercise</div>
+      <div style="font-size:13px;color:var(--text);line-height:1.6">Log the weight you actually used below, then tap ▼ Same ▲ to tell the app how it felt. Next session automatically adjusts.</div>
     </div>
   `;
 }
+
 
 
 function saveWorkout() {
