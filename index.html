@@ -1857,7 +1857,7 @@ const EXERCISES = {
 
   single_leg_rdl:   { name:'Single-Leg Romanian Deadlift', cat:'legs', loc:BOTH, sets:3, reps:'8 each leg', weight:'25lb DB', rest:90,
     tip:'GOLF TRANSFER: This is the hip hinge of your impact position. Hold DB in opposite hand, hinge until you feel hamstring, drive through heel to stand. Improves swing power and prevents lower back injury.',
-    weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
 
   goblet_squat:     { name:'Goblet Squat', cat:'legs', loc:BOTH, sets:3, reps:'12', weight:'35lb KB', rest:75,
     tip:'Hold KB at chest, elbows inside knees, sit back and down. Builds quad and glute strength that directly powers the drive phase of your golf swing.',
@@ -1865,7 +1865,7 @@ const EXERCISES = {
 
   hip_thrust:       { name:'Hip Thrust', cat:'legs', loc:BOTH, sets:3, reps:'15', weight:'35lb KB on hips', rest:75,
     tip:'Upper back on bench, drive through heels, squeeze glutes hard at top for 1 second. Glutes are the primary power source for both golf distance and archery stability. Most undertrained muscle in sedentary men.',
-    weightRec:{ phase1:0, phase2:35, phase3:35, machine:false, unit:'lb', bw_first:true } },
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
 
   pallof_press:     { name:'Pallof Press', cat:'core', loc:GYM, sets:3, reps:'12 each side', weight:'20 lbs', rest:60,
     tip:'GOLF/ARCHERY TRANSFER: Stand sideways to cable, press straight out and hold 2 seconds. Trains anti-rotation — your ability to resist lateral sway. This directly improves golf consistency and archery draw stability. Non-negotiable.',
@@ -2007,13 +2007,12 @@ const EXERCISES = {
 // Returns { title, type, focus, calBurn, exercises[], notes }
 
 // ── WEIGHT RECOMMENDATION ENGINE ─────────────────────────────────────────
-function getWeightRecommendation(exerciseName, phase, d) {
+function getWeightRecommendation(exerciseName, phase, d, exWeightRec) {
+  // Try EXERCISES lookup first, fall back to directly passed weightRec
   const exKey = Object.keys(EXERCISES).find(k => EXERCISES[k].name === exerciseName);
-  if (!exKey) return null;
-  const ex = EXERCISES[exKey];
-  if (!ex.weightRec) return null;
-  const rec = ex.weightRec;
+  const rec = exKey ? EXERCISES[exKey].weightRec : exWeightRec;
 
+  if (!rec) return null;
   if (rec.unit === 'bw') return { text: 'Bodyweight', lbs: 0, isBW: true };
 
   const prevPerformance = getPreviousWeight(exerciseName, d);
@@ -2022,20 +2021,18 @@ function getWeightRecommendation(exerciseName, phase, d) {
     const feedback = prevPerformance.feedback || 'hold';
     const lastWeight = prevPerformance.weight;
     const increment = rec.kb ? 0 : 5;
-
     if (feedback === 'up') {
       const next = rec.kb ? getNextKBWeight(lastWeight) : lastWeight + increment;
       return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▲', note: 'Up from ' + lastWeight + 'lbs last session' };
     } else if (feedback === 'down') {
-      const next = Math.max(0, rec.kb ? getPrevKBWeight(lastWeight) : lastWeight - increment);
+      const next = Math.max(5, rec.kb ? getPrevKBWeight(lastWeight) : lastWeight - increment);
       return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
     } else {
       return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '→', note: 'Same as last session' };
     }
   }
 
-  const startWeight = rec['phase' + phase] || rec.phase1;
-  if (startWeight === 0 && rec.bw_first) return { text: 'Bodyweight first session', lbs: 0, isBW: true, note: 'Add weight next session once form is solid' };
+  const startWeight = rec['phase' + phase] || rec.phase1 || 0;
   if (startWeight === 0) return { text: 'Bodyweight', lbs: 0, isBW: true };
   const machineNote = rec.machine ? ' (adjust to how machine feels)' : '';
   return { text: startWeight + ' lbs', lbs: startWeight, note: 'Starting weight for your stats' + machineNote };
@@ -2189,7 +2186,7 @@ function generateWorkout() {
   plan.exercises.forEach(ex => {
     const row = document.createElement('div');
     row.className = 'exercise-row';
-    const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d);
+    const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d, ex.weightRec);
     const suggestedWeight = weightRec && !weightRec.isBW ? weightRec.lbs : '';
     row.innerHTML = `
       <input type="text" value="${ex.name}" class="ex-name">
@@ -2250,15 +2247,15 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       note: 'Lunge pattern builds single-leg stability critical for golf stance and archery draw position. Harder than it looks — control is everything.',
       gym: [
         { ...E.leg_press, reps:'15', sets:4 },
-        { name:'Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee tracks over toe, control descent. Builds the single-leg stability of your golf backswing.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
-        { name:'Lateral Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DB', rest:75, tip:'Step wide to the side, sit into the hip, drive back. Trains the lateral movement pattern used in golf footwork.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Reverse Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee tracks over toe, control descent. Builds the single-leg stability of your golf backswing.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'Lateral Lunge', cat:'legs', loc:GYM, sets:3, reps:'10 each leg', weight:'25lb DB', rest:75, tip:'Step wide to the side, sit into the hip, drive back. Trains the lateral movement pattern used in golf footwork.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.glute_bridge,
         E.pallof_press,
         E.dead_bug,
       ],
       home: [
         E.goblet_squat,
-        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee toward floor, drive through front heel.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee toward floor, drive through front heel.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { name:'Lateral Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'bodyweight', rest:75, tip:'Wide step to the side, sit into the hip, keep chest tall.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
         E.glute_bridge,
         E.pallof_press_home,
@@ -2270,7 +2267,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       label: 'Power & Athletic Development',
       note: 'Explosive movements build the fast-twitch power that drives golf distance. Controlled on the way down, explosive on the way up.',
       gym: [
-        { name:'Box Step-Up', cat:'legs', loc:GYM, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'GOLF: Explosive drive through the heel mirrors the push from the ground in the downswing. Step up fast, lower slow.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Box Step-Up', cat:'legs', loc:GYM, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'GOLF: Explosive drive through the heel mirrors the push from the ground in the downswing. Step up fast, lower slow.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { name:'Sumo Squat to Stand', cat:'legs', loc:GYM, sets:3, reps:'12', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging, squat deep, stand explosively. Hip mobility and power combined.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         E.hip_thrust,
         E.single_leg_rdl,
@@ -2279,7 +2276,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
         E.dead_bug,
       ],
       home: [
-        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'bodyweight', rest:90, tip:'Use a sturdy chair or step. Explosive drive up, slow on the way down.', weightRec:{ phase1:0, phase2:0, phase3:25, machine:false, unit:'bw', bw_first:true } },
+        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'bodyweight', rest:90, tip:'Use a sturdy chair or step. Explosive drive up, slow on the way down.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         E.hip_thrust,
         E.single_leg_rdl,
@@ -2294,7 +2291,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       note: 'Higher reps, shorter rest, elevated heart rate throughout. Burns more calories than standard strength work. You will be breathing hard. That is the point.',
       gym: [
         { name:'Leg Press High Rep', cat:'legs', loc:GYM, sets:4, reps:'20', weight:'70 lbs', rest:60, tip:'Lighter weight, more reps, shorter rest. Metabolic conditioning — heart rate elevated the whole time.', weightRec:{ phase1:60, phase2:70, phase3:90, machine:true, unit:'lb' } },
-        { name:'Walking Lunge', cat:'legs', loc:GYM, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement, no pausing. More aerobic demand than static lunges.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Walking Lunge', cat:'legs', loc:GYM, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement, no pausing. More aerobic demand than static lunges.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
         E.kb_farmer_carry,
         { ...E.plank, reps:'50 sec', sets:3 },
@@ -2302,7 +2299,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        { name:'Walking Lunge', cat:'legs', loc:HOME, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement forward. More aerobic than static lunges.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Walking Lunge', cat:'legs', loc:HOME, sets:3, reps:'16 steps', weight:'25lb DBs', rest:60, tip:'Continuous movement forward. More aerobic than static lunges.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
         E.kb_farmer_carry,
         { ...E.plank, reps:'50 sec', sets:3 },
@@ -2405,7 +2402,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       home: [
         { ...E.kb_swing, sets:4, reps:'20' },
         { ...E.kb_farmer_carry, sets:5, reps:'50 steps' },
-        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Total body — burns more calories than almost any exercise.', weightRec:{ phase1:0, phase2:25, phase3:35, machine:false, unit:'lb', bw_first:true } },
+        { name:'Renegade Row', cat:'cardio', loc:HOME, sets:3, reps:'8 each side', weight:'25lb DBs', rest:60, tip:'Plank position on DBs, row one arm up, alternate. Total body — burns more calories than almost any exercise.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.plank,
         E.dead_bug,
       ],
@@ -2597,7 +2594,7 @@ function renderWorkoutPlan(plan, phaseInfo) {
     </div>
     <div class="alert alert-blue" style="margin-bottom:16px">📋 ${plan.notes}</div>
 
-    ${plan.exercises.map((ex, i) => renderExerciseBlock(ex, i, phase, d)).join('')}
+    ${plan.exercises.map((ex, i) => renderExerciseBlock(ex, i, phase, d, plan.exercises.map(e => e.name))).join('')}
 
     <div style="margin-top:4px;padding:14px;background:var(--surface2);border-radius:10px;border:1px solid var(--border)">
       <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px">After each exercise</div>
@@ -2678,16 +2675,21 @@ function getRecentlyUsedExercises(d) {
   return recent;
 }
 
-function getAvailableAlts(exerciseName, d) {
+function getAvailableAlts(exerciseName, d, currentWorkoutExercises) {
   const alts = SUBSTITUTIONS[exerciseName];
   if (!alts || !alts.length) return [];
   const recent = getRecentlyUsedExercises(d);
-  return alts.filter(a => !recent.has(a));
+  // Also exclude exercises already in the current workout
+  const currentNames = new Set(currentWorkoutExercises || []);
+  return alts.filter(a => !recent.has(a) && !currentNames.has(a));
 }
 
 function swapExercise(blockId, currentName, swapIndex) {
   const d = getData();
-  const availableAlts = getAvailableAlts(currentName, d);
+  // Collect names of all exercises currently in the workout plan
+  const currentNames = Array.from(document.querySelectorAll('.ex-name-big'))
+    .map(el => el.textContent.replace(/^\d+\.\s*/, '').trim());
+  const availableAlts = getAvailableAlts(currentName, d, currentNames);
   if (!availableAlts.length) {
     showToast('No fresh alternatives — all options used in the last 7 days');
     return;
@@ -2747,7 +2749,7 @@ function swapExercise(blockId, currentName, swapIndex) {
 }
 
 function renderExerciseBlock(ex, i, phase, d) {
-  const weightRec = getWeightRecommendation(ex.name, phase, d);
+  const weightRec = getWeightRecommendation(ex.name, phase, d, ex.weightRec);
   const isCardio = ex.cat === 'cardio';
   const isBW = weightRec && weightRec.isBW;
   const exName = ex.name.replace(/'/g, "\\'");
@@ -2771,7 +2773,7 @@ function renderExerciseBlock(ex, i, phase, d) {
       + '</div>';
   }
 
-  const availableAlts = getAvailableAlts(ex.name, d);
+  const availableAlts = getAvailableAlts(ex.name, d, workoutExercises);
   const hasAlts = availableAlts.length > 0;
   const allUsed = SUBSTITUTIONS[ex.name] && SUBSTITUTIONS[ex.name].length > 0 && availableAlts.length === 0;
 
@@ -2816,7 +2818,7 @@ function renderExerciseBlock(ex, i, phase, d) {
     : '';
 
   return '<div class="ex-block" id="' + blockId + '" style="margin-bottom:12px">'
-    + '<div class="ex-block-header">'
+    + '<div class="ex-block-header" style="cursor:default">'
     + '<div style="flex:1">'
     + '<div class="ex-name-big">' + (i+1) + '. ' + ex.name + '</div>'
     + '<div class="ex-detail">' + ex.sets + ' sets · ' + ex.reps + '</div>'
@@ -2827,7 +2829,46 @@ function renderExerciseBlock(ex, i, phase, d) {
     + swapHtml
     + feedbackHtml
     + restHtml
+    + '<div style="padding:10px 14px;border-top:1px solid var(--border);display:flex;align-items:center;gap:10px">'
+    + '<button id="done-btn-' + i + '" onclick="toggleExDone(\'' + blockId + '\',' + i + ')" '
+    + 'style="display:flex;align-items:center;gap:8px;background:transparent;border:1px solid var(--border);color:var(--muted);border-radius:6px;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s;width:100%">'
+    + '<span style="width:18px;height:18px;border:2px solid var(--muted);border-radius:4px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0" id="done-check-' + i + '"></span>'
+    + '<span id="done-label-' + i + '">Mark done</span>'
+    + '</button>'
+    + '</div>'
     + '</div>';
+}
+
+function toggleExDone(blockId, i) {
+  const block = document.getElementById(blockId);
+  const btn = document.getElementById('done-btn-' + i);
+  const check = document.getElementById('done-check-' + i);
+  const label = document.getElementById('done-label-' + i);
+  if (!block || !btn) return;
+
+  const isDone = block.dataset.done === 'true';
+
+  if (!isDone) {
+    block.dataset.done = 'true';
+    block.style.opacity = '0.65';
+    block.style.borderColor = 'var(--green)';
+    btn.style.borderColor = 'var(--green)';
+    btn.style.color = 'var(--green)';
+    btn.style.background = 'rgba(34,197,94,0.08)';
+    check.innerHTML = '<svg width="12" height="12" viewBox="0 0 12 12"><polyline points="1,6 4,10 11,2" fill="none" stroke="var(--green)" stroke-width="2" stroke-linecap="round"/></svg>';
+    check.style.borderColor = 'var(--green)';
+    label.textContent = 'Done ✓';
+  } else {
+    block.dataset.done = 'false';
+    block.style.opacity = '1';
+    block.style.borderColor = '';
+    btn.style.borderColor = 'var(--border)';
+    btn.style.color = 'var(--muted)';
+    btn.style.background = 'transparent';
+    check.innerHTML = '';
+    check.style.borderColor = 'var(--muted)';
+    label.textContent = 'Mark done';
+  }
 }
 
 
