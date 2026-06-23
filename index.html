@@ -1285,54 +1285,82 @@ function localYesterday() {
 }
 
 function migrateUTCDates() {
-  // Only run once per device
   if (lsGet('mitchfit_utc_migrated')) return;
 
   const d = getData();
   const today = localDateStr();
   let changed = false;
 
-  // Fix food logs with future dates (UTC artifact)
-  d.foodLogs = d.foodLogs.map(entry => {
-    if (entry.date > today) {
-      // Shift back one day — this was a UTC date logged at night
-      const corrected = new Date(entry.date + 'T12:00:00');
-      corrected.setDate(corrected.getDate() - 1);
-      changed = true;
-      return { ...entry, date: localDateStr(corrected) };
-    }
-    return entry;
+  ['foodLogs','weightLogs','workoutLogs'].forEach(key => {
+    d[key] = d[key].map(entry => {
+      if (entry.date > today) {
+        const corrected = new Date(entry.date + 'T12:00:00');
+        corrected.setDate(corrected.getDate() - 1);
+        changed = true;
+        return { ...entry, date: localDateStr(corrected) };
+      }
+      return entry;
+    });
   });
 
-  // Fix weight logs with future dates
-  d.weightLogs = d.weightLogs.map(entry => {
-    if (entry.date > today) {
-      const corrected = new Date(entry.date + 'T12:00:00');
-      corrected.setDate(corrected.getDate() - 1);
-      changed = true;
-      return { ...entry, date: localDateStr(corrected) };
-    }
-    return entry;
-  });
+  if (changed) saveDataSync(d);
+  lsSet('mitchfit_utc_migrated', { done: true, at: Date.now() });
+}
 
-  // Fix workout logs with future dates
-  d.workoutLogs = d.workoutLogs.map(entry => {
-    if (entry.date > today) {
-      const corrected = new Date(entry.date + 'T12:00:00');
-      corrected.setDate(corrected.getDate() - 1);
-      changed = true;
-      return { ...entry, date: localDateStr(corrected) };
-    }
-    return entry;
-  });
+function recoverLegacyData() {
+  // Check old single-key storage used before the split-key refactor
+  if (lsGet('mitchfit_legacy_recovered')) return;
 
-  if (changed) {
-    saveDataSync(d);
-    console.log('Migrated UTC date entries to local dates');
+  try {
+    const legacy = lsGet('mitchfit_v1');
+    if (!legacy) {
+      lsSet('mitchfit_legacy_recovered', { done: true });
+      return;
+    }
+
+    const d = getData();
+    let recovered = 0;
+
+    // Merge food logs — deduplicate by timestamp
+    if (legacy.foodLogs && legacy.foodLogs.length) {
+      const existingTs = new Set(d.foodLogs.map(f => f.timestamp));
+      const newEntries = legacy.foodLogs.filter(f => f.timestamp && !existingTs.has(f.timestamp));
+      d.foodLogs = [...d.foodLogs, ...newEntries];
+      recovered += newEntries.length;
+    }
+
+    // Merge weight logs
+    if (legacy.weightLogs && legacy.weightLogs.length) {
+      const existingTs = new Set(d.weightLogs.map(w => w.timestamp));
+      const newEntries = legacy.weightLogs.filter(w => w.timestamp && !existingTs.has(w.timestamp));
+      d.weightLogs = [...d.weightLogs, ...newEntries];
+      recovered += newEntries.length;
+    }
+
+    // Merge workout logs
+    if (legacy.workoutLogs && legacy.workoutLogs.length) {
+      const existingTs = new Set(d.workoutLogs.map(w => w.timestamp));
+      const newEntries = legacy.workoutLogs.filter(w => w.timestamp && !existingTs.has(w.timestamp));
+      d.workoutLogs = [...d.workoutLogs, ...newEntries];
+      recovered += newEntries.length;
+    }
+
+    // Recover coach history
+    if (legacy.coachHistory && legacy.coachHistory.length && !d.coachHistory.length) {
+      d.coachHistory = legacy.coachHistory;
+      recovered += legacy.coachHistory.length;
+    }
+
+    if (recovered > 0) {
+      saveDataSync(d);
+      console.log('Recovered ' + recovered + ' entries from legacy storage');
+      showToast('Recovered ' + recovered + ' historical entries ✓');
+    }
+  } catch(e) {
+    console.warn('Legacy recovery failed:', e.message);
   }
 
-  // Mark as done so it never runs again
-  lsSet('mitchfit_utc_migrated', { done: true, at: Date.now() });
+  lsSet('mitchfit_legacy_recovered', { done: true, at: Date.now() });
 }
 
 function init() {
@@ -1342,8 +1370,8 @@ function init() {
   document.getElementById('wt-date').value = today;
   document.getElementById('food-history-date').value = today;
 
-  // One-time migration: fix entries stored under UTC dates (future dates)
-  // UTC at night in US timezones creates dates 1 day ahead of local date
+  // Recover data from old single-key storage first, then fix any date issues
+  recoverLegacyData();
   migrateUTCDates();
 
   // Purge garbage learned cache entries
