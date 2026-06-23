@@ -2573,55 +2573,76 @@ const SUBSTITUTIONS = {
   'Renegade Row':                  ['Single-Arm DB Row', 'KB Bent-Over Row'],
 };
 
+// Returns set of exercise names used in the last 7 days
+function getRecentlyUsedExercises(d) {
+  const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  const recent = new Set();
+  d.workoutLogs.forEach(log => {
+    if (new Date(log.date).getTime() >= cutoff) {
+      (log.exercises || []).forEach(ex => recent.add(ex.name));
+    }
+  });
+  return recent;
+}
+
+function getAvailableAlts(exerciseName, d) {
+  const alts = SUBSTITUTIONS[exerciseName];
+  if (!alts || !alts.length) return [];
+  const recent = getRecentlyUsedExercises(d);
+  return alts.filter(a => !recent.has(a));
+}
+
 function swapExercise(blockId, currentName, swapIndex) {
-  const alts = SUBSTITUTIONS[currentName];
-  if (!alts || !alts.length) return;
+  const d = getData();
+  const availableAlts = getAvailableAlts(currentName, d);
+  if (!availableAlts.length) {
+    showToast('No fresh alternatives — all options used in the last 7 days');
+    return;
+  }
 
-  // Cycle through alternatives
-  const nextIndex = swapIndex % alts.length;
-  const altName = alts[nextIndex];
+  const nextIndex = swapIndex % availableAlts.length;
+  const altName = availableAlts[nextIndex];
 
-  // Find the alt in EXERCISES by name
   const exKey = Object.keys(EXERCISES).find(k => EXERCISES[k].name === altName);
   const altEx = exKey ? EXERCISES[exKey] : null;
 
   const block = document.getElementById(blockId);
   if (!block) return;
 
-  // Update the exercise name display
+  // Update display
   const nameEl = block.querySelector('.ex-name-big');
   if (nameEl) {
     const num = nameEl.textContent.split('.')[0];
     nameEl.textContent = num + '. ' + altName;
   }
 
-  // Update tip
   const tipEl = block.querySelector('.ex-tip');
-  if (tipEl && altEx && altEx.tip) {
-    tipEl.textContent = '💡 ' + altEx.tip;
-  } else if (tipEl) {
-    tipEl.textContent = '💡 Same muscle group — different movement pattern.';
-  }
+  if (tipEl) tipEl.textContent = '💡 ' + (altEx && altEx.tip ? altEx.tip : 'Same muscle group — different movement pattern.');
 
-  // Update the swap button to cycle to next alt
+  // Update swap button — filter again with altName as new current
   const swapBtn = block.querySelector('.swap-btn');
   if (swapBtn) {
-    const nextAltIndex = (nextIndex + 1) % alts.length;
-    const nextAltName = alts[nextAltIndex];
-    swapBtn.setAttribute('onclick', 'swapExercise("' + blockId + '","' + altName.replace(/"/g,'\\"') + '",' + nextAltIndex + ')');
-    swapBtn.title = 'Next: ' + nextAltName;
+    const nextAlts = getAvailableAlts(altName, d);
+    if (nextAlts.length) {
+      const nextAltIndex = (nextIndex + 1) % availableAlts.length;
+      swapBtn.setAttribute('onclick', 'swapExercise("' + blockId + '","' + altName.replace(/"/g,'\\"') + '",' + nextAltIndex + ')');
+      swapBtn.textContent = '⇄ Swap — ' + (nextAlts[(nextIndex + 1) % nextAlts.length] || nextAlts[0]);
+    } else {
+      swapBtn.textContent = '⇄ All alternatives used this week';
+      swapBtn.style.opacity = '0.4';
+      swapBtn.style.cursor = 'default';
+      swapBtn.setAttribute('onclick', '');
+    }
   }
 
-  // Update the exercise name input in the log form
+  // Update log form
   const rows = document.querySelectorAll('.exercise-row');
   rows.forEach(row => {
     const nameInput = row.querySelector('.ex-name');
     if (nameInput && nameInput.value.trim() === currentName) {
       nameInput.value = altName;
-      // Update weight if we have a rec
-      const d = getData();
       const phase = getFitnessPhase(d).phase;
-      const rec = altEx ? getWeightRecommendation(altName, phase, d) : null;
+      const rec = getWeightRecommendation(altName, phase, d);
       if (rec && !rec.isBW) {
         const weightInput = row.querySelector('.ex-weight');
         if (weightInput && !weightInput.value) weightInput.value = rec.lbs;
