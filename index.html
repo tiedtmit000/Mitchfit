@@ -1805,6 +1805,7 @@ function checkGenReady() {
 }
 
 function resetWorkoutPlanner() {
+  window._pendingFeedback = {};
   woState = { time: null, location: null };
   document.querySelectorAll('.sel-btn').forEach(b => b.classList.remove('selected'));
   document.getElementById('gen-btn').disabled = true;
@@ -2175,38 +2176,42 @@ function playRestDoneSound() {
   } catch(e) { console.warn('Audio not available'); }
 }
 
+// Pending feedback — keyed by exercise name, set before save
+// Merged into the workout log when saveWorkout() runs
+if (!window._pendingFeedback) window._pendingFeedback = {};
+
 function setExerciseFeedback(exerciseName, feedback) {
+  const icons = { up: '▲', hold: '→', down: '▼' };
+  const labels = { up: 'More weight noted', hold: 'Same weight noted', down: 'Less weight noted' };
+
+  // Always store in pending — works before or after save
+  window._pendingFeedback[exerciseName] = feedback;
+
+  // If workout already saved today, write directly to the log
   const d = getData();
-  if (!d.workoutLogs.length) {
-    showToast('Save your workout first, then tap the feedback buttons');
-    return;
+  if (d.workoutLogs.length) {
+    const log = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date))[0];
+    const ex = log.exercises && log.exercises.find(e => e.name === exerciseName);
+    if (ex) {
+      ex.feedback = feedback;
+      saveDataSync(d);
+    }
   }
-  const log = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date))[0];
-  const ex = log.exercises && log.exercises.find(e => e.name === exerciseName);
-  if (ex) {
-    ex.feedback = feedback;
-    saveDataSync(d);
 
-    // Visual confirmation — highlight the tapped button
-    const icons = { up: '▲', hold: '→', down: '▼' };
-    const labels = { up: 'More weight noted', hold: 'Same weight noted', down: 'Less weight noted' };
-    showToast(icons[feedback] + ' ' + labels[feedback] + ' for next session');
+  showToast(icons[feedback] + ' ' + labels[feedback] + ' for next session');
 
-    // Find and highlight the clicked button in the DOM
-    document.querySelectorAll('.feedback-btn').forEach(btn => {
-      if (btn.dataset.exercise === exerciseName && btn.dataset.feedback === feedback) {
-        btn.style.background = feedback === 'up' ? 'rgba(34,197,94,0.4)'
-          : feedback === 'down' ? 'rgba(239,68,68,0.4)' : 'rgba(100,116,139,0.4)';
-        btn.style.transform = 'scale(1.05)';
-        setTimeout(() => { btn.style.transform = ''; }, 300);
-      } else if (btn.dataset.exercise === exerciseName) {
-        btn.style.background = 'transparent';
-        btn.style.opacity = '0.5';
-      }
-    });
-  } else {
-    showToast('Save your workout first, then tap the feedback buttons');
-  }
+  // Highlight the clicked button
+  document.querySelectorAll('.feedback-btn').forEach(btn => {
+    if (btn.dataset.exercise === exerciseName && btn.dataset.feedback === feedback) {
+      btn.style.background = feedback === 'up' ? 'rgba(34,197,94,0.4)'
+        : feedback === 'down' ? 'rgba(239,68,68,0.4)' : 'rgba(100,116,139,0.4)';
+      btn.style.transform = 'scale(1.05)';
+      setTimeout(() => { btn.style.transform = ''; }, 300);
+    } else if (btn.dataset.exercise === exerciseName) {
+      btn.style.background = 'transparent';
+      btn.style.opacity = '0.5';
+    }
+  });
 }
 
 function getNextWorkoutType(d) {
@@ -3098,7 +3103,8 @@ function saveWorkout() {
   const d = getData();
   const date = window._currentWorkoutDate || localDateStr();
 
-  // Capture exercises from the plan + any feedback already tapped
+  // Capture exercises from the plan — merge any pending feedback tapped before save
+  const pending = window._pendingFeedback || {};
   const exercises = plan.exercises.map(ex => {
     const weightRec = getWeightRecommendation(ex.name, 1, d, ex.weightRec);
     return {
@@ -3106,9 +3112,10 @@ function saveWorkout() {
       sets: ex.sets,
       reps: ex.reps,
       weight: weightRec && !weightRec.isBW ? String(weightRec.lbs) : 'bw',
-      feedback: null // filled in by feedback buttons after save
+      feedback: pending[ex.name] || null
     };
   });
+  window._pendingFeedback = {}; // clear after merge
 
   d.workoutLogs.push({
     date,
@@ -3137,6 +3144,7 @@ function saveWorkout() {
 
 function finishWorkout() {
   window._currentWorkoutPlan = null;
+  window._pendingFeedback = {};
   resetWorkoutPlanner();
   renderAll();
 }
