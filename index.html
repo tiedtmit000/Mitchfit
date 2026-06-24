@@ -1926,7 +1926,7 @@ const EXERCISES = {
     weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
 
   kb_swing:         { name:'KB Swing', cat:'cardio', loc:HOME, sets:5, reps:'15', weight:'35lb KB', rest:45,
-    tip:'GOLF TRANSFER: The KB swing is the closest gym movement to a golf swing — same hip hinge, same explosive hip extension, same posterior chain. 5 rounds of 15 at 35lbs is serious cardio.',
+    tip:'Hip hinge power movement — same explosive hip extension pattern as a deadlift but ballistic. Power from glutes and hips, not arms. Start at the recommended weight, progress when the hinge pattern is locked in. High rep KB swings are serious conditioning.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   // ── DAY B: POSTERIOR CHAIN + SHOULDERS
@@ -1958,7 +1958,7 @@ const EXERCISES = {
     weightRec:{ phase1:35, phase2:50, phase3:65, machine:false, unit:'lb' } },
 
   kb_shrug:         { name:'KB Shrug', cat:'pull', loc:HOME, sets:3, reps:'15', weight:'35lb KBs', rest:60,
-    tip:'Both KBs at sides, shrug straight up, hold 1 second. No rolling. 35lb is light for shrugs — focus on the contraction and high reps.',
+    tip:'Both KBs at sides, shrug straight up, hold 1 second at the top. No rolling the shoulders — that is a myth that stresses the AC joint. Focus on the contraction and high reps. Progress weight when 15 reps feels easy.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   chest_sup_row:    { name:'Chest-Supported DB Row', cat:'pull', loc:GYM, sets:3, reps:'12', weight:'35lb DBs', rest:75,
@@ -2352,8 +2352,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       calBurn: '150-220',
       exercises,
       notes: isGym
-        ? 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Cable pull-through locks in the hip hinge pattern under load — the foundation of every lower body movement here.'
-        : 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 2 sets each. Learn the hip hinge on single-leg RDL. Dead bug and bird dog build the lumbar stability that carries everything else.',
+        ? 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 3 sets each. Cable pull-through locks in the hip hinge pattern under load — the foundation of every lower body movement here.'
+        : 'Session ' + (phaseInfo.count + 1) + ' of 6 in intro phase. 3 sets each. Learn the hip hinge on single-leg RDL. Dead bug and bird dog build the lumbar stability that carries everything else.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
     };
@@ -2403,7 +2403,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
         E.landmine_deadlift,
       ],
       home: [
-        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'Use a sturdy chair or step, hold 25lb DBs at sides. Explosive drive up through the heel, slow controlled descent. DBs add load without requiring a barbell.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'Use a sturdy chair or step, hold DBs at sides at the recommended weight. Explosive drive up through the heel, slow controlled descent. DBs add load without requiring a barbell.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
         { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         E.hip_thrust,
         E.single_leg_rdl,
@@ -2440,7 +2440,7 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
   let exercises = isGym ? [...v.gym] : [...v.home];
 
   // Scale exercise count to time
-  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
   else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
   else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
   else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
@@ -2473,17 +2473,17 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   if (phase === 1) {
     const exercises = isGym
       ? [
-          { ...E.rdl, sets:2 },
-          { ...E.bent_over_row, sets:2 },
-          { ...E.rear_delt_fly, sets:2 },
-          { ...E.face_pull, sets:2 },
+          { ...E.rdl, sets:3 },
+          { ...E.bent_over_row, sets:3 },
+          { ...E.rear_delt_fly, sets:3 },
+          { ...E.face_pull, sets:3 },
           cardioMins > 0 ? { ...E.treadmill_walk, reps: cardioMins + ' min', sets:1 } : null,
         ].filter(Boolean)
       : [
-          { ...E.rdl_db, sets:2 },
-          { ...E.kb_row, sets:2 },
-          { ...E.rear_delt_fly_kb, sets:2 },
-          { ...E.kb_shrug, sets:2 },
+          { ...E.rdl_db, sets:3 },
+          { ...E.kb_row, sets:3 },
+          { ...E.rear_delt_fly_kb, sets:3 },
+          { ...E.kb_shrug, sets:3 },
         ];
     return {
       title: 'Day B — Posterior Chain + Shoulders',
@@ -2492,7 +2492,7 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       calBurn: '180-260',
       exercises,
       notes: isGym
-        ? 'Session ' + (phaseInfo.count + 1) + ' intro phase. RDL is the bilateral hamstring builder — heavier than SL RDL, different stimulus. Bent-over row builds back thickness. 2 sets each while you lock in the hinge.'
+        ? 'Session ' + (phaseInfo.count + 1) + ' intro phase. RDL is the bilateral hamstring builder — heavier than SL RDL, different stimulus. Bent-over row builds back thickness. 3 sets — start at the recommended weight while you lock in the hinge.'
         : 'Session ' + (phaseInfo.count + 1) + ' intro phase. DB RDL at 35lbs — focus on the hamstring stretch, not the weight. KB row and rear delt fly set the foundation for upper back development.',
       location: isGym ? 'Full Gym' : 'Home',
       variant: 1
@@ -2739,7 +2739,7 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,4).map(e=>({...e,sets:2}));
+  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
   else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
   else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
   else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
@@ -3140,11 +3140,12 @@ function saveWorkout() {
 
   const d = getData();
   const date = window._currentWorkoutDate || localDateStr();
+  const phaseInfo = getFitnessPhase(d);
 
   // Capture exercises from the plan — merge any pending feedback tapped before save
   const pending = window._pendingFeedback || {};
   const exercises = plan.exercises.map(ex => {
-    const weightRec = getWeightRecommendation(ex.name, 1, d, ex.weightRec);
+    const weightRec = getWeightRecommendation(ex.name, phaseInfo.phase, d, ex.weightRec);
     return {
       name: ex.name,
       sets: ex.sets,
