@@ -4973,14 +4973,18 @@ async function syncToCloud() {
 
   const result = await sbCall({ action: 'save', token, payload });
 
+  console.log('Sync result:', JSON.stringify(result));
+
   if (result.success) {
     const time = new Date().toLocaleTimeString();
     if (statusEl) statusEl.textContent = 'Last synced: ' + time;
     lsSet('mitchfit_last_sync', { at: Date.now() });
+    showToast('Synced ✓');
   } else {
-    console.error('Sync failed:', result);
-    if (statusEl) statusEl.textContent = 'Sync failed — check connection';
-    showToast('Sync failed');
+    const errMsg = result.message || result.error || result.hint || result.details || JSON.stringify(result);
+    console.error('Sync failed:', errMsg);
+    if (statusEl) statusEl.textContent = 'Sync failed: ' + errMsg;
+    showToast('Sync failed: ' + errMsg.slice(0, 60));
   }
 }
 
