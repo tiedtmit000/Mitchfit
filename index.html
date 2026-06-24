@@ -4251,6 +4251,9 @@ function saveFood() {
 function renderFoodToday() {
   const d = getData();
   const today = localDateStr();
+  // Always keep date input defaulted to today
+  const foodDateEl = document.getElementById('food-date');
+  if (foodDateEl && !foodDateEl.value) foodDateEl.value = today;
   const todayFood = d.foodLogs.filter(f => f.date === today).sort((a,b) => a.timestamp - b.timestamp);
   const el = document.getElementById('today-food-log');
 
@@ -4372,7 +4375,9 @@ function saveFoodEdit(idx) {
 
 function renderFoodHistory() {
   const d = getData();
-  const date = document.getElementById('food-history-date').value;
+  const histEl = document.getElementById('food-history-date');
+  if (histEl && !histEl.value) histEl.value = localDateStr();
+  const date = histEl ? histEl.value : localDateStr();
   if (!date) return;
 
   const items = d.foodLogs.filter(f => f.date === date);
