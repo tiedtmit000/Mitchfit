@@ -1150,6 +1150,32 @@
   <!-- DATA BACKUP -->
   <div class="panel" id="panel-data">
 
+    <!-- SUPABASE AUTH -->
+    <div class="card" id="auth-card">
+      <div class="card-title">Cloud Backup</div>
+      <div id="auth-status-bar" style="margin-bottom:14px"></div>
+      <div id="auth-form">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
+          Sign in to automatically sync all your data to the cloud. Works across devices and survives clearing browser history.
+        </div>
+        <input type="email" id="auth-email" placeholder="Email" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+        <input type="password" id="auth-password" placeholder="Password" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:14px;box-sizing:border-box">
+        <div style="display:flex;gap:10px">
+          <button class="btn btn-primary" style="flex:1" onclick="authSignIn()">Sign In</button>
+          <button class="btn btn-outline" style="flex:1" onclick="authSignUp()">Create Account</button>
+        </div>
+        <div id="auth-error" style="margin-top:10px;font-size:13px;color:var(--red)"></div>
+      </div>
+      <div id="auth-signed-in" style="display:none">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:12px" id="auth-user-label"></div>
+        <div style="display:flex;gap:10px;margin-bottom:10px">
+          <button class="btn btn-primary" style="flex:1" onclick="syncToCloud()">☁️ Sync Now</button>
+          <button class="btn btn-outline" style="flex:1" onclick="authSignOut()">Sign Out</button>
+        </div>
+        <div id="sync-status" style="font-size:12px;color:var(--muted);text-align:center"></div>
+      </div>
+    </div>
+
     <div class="card">
       <div class="card-title">Export Data</div>
       <div style="font-size:13px;color:var(--muted);margin-bottom:16px;line-height:1.6">
@@ -1256,6 +1282,8 @@ function saveData(d) {
   lsSet(LS_WORKOUTS, { workoutLogs:  d.workoutLogs  || [] });
   lsSet(LS_FOOD,     { foodLogs:     d.foodLogs     || [], checklists: d.checklists || {} });
   lsSet(LS_COACH,    { coachHistory: d.coachHistory || [] });
+  // Auto-sync to cloud if signed in — fire and forget, never blocks UI
+  if (sbGetToken()) syncToCloud().catch(e => console.warn('Cloud sync failed:', e));
 }
 
 const saveDataSync = saveData;
@@ -1390,6 +1418,9 @@ function init() {
   // Recover data from old single-key storage first, then fix any date issues
   recoverLegacyData();
   migrateUTCDates();
+  // Restore auth UI state and sync from cloud if signed in
+  renderAuthState();
+  if (sbGetToken()) syncFromCloud().catch(e => console.warn('Initial sync failed:', e));
 
   // Purge garbage learned cache entries
   const learned = getLearnedFoods();
@@ -1668,7 +1699,7 @@ function switchTab(id) {
   event.target.classList.add('active');
   document.getElementById('panel-' + id).classList.add('active');
   renderAll();
-  if (id === 'data') renderDataSummary();
+  if (id === 'data') { renderDataSummary(); renderAuthState(); }
 }
 
 // ═══════════════════════════════════════════
@@ -4766,6 +4797,185 @@ function showToast(msg) {
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2500);
+}
+
+
+// ═══════════════════════════════════════════
+// SUPABASE CLOUD SYNC
+// All calls go through Netlify proxy — credentials never in frontend
+// Token stored in localStorage under 'mitchfit_sb_token'
+// ═══════════════════════════════════════════
+
+const SUPABASE_PROXY = 'https://musical-snickerdoodle-e58f0f.netlify.app/api/supabase';
+const LS_SB_TOKEN    = 'mitchfit_sb_token';
+const LS_SB_EMAIL    = 'mitchfit_sb_email';
+
+function sbGetToken() { return localStorage.getItem(LS_SB_TOKEN); }
+function sbGetEmail() { return localStorage.getItem(LS_SB_EMAIL); }
+
+function sbSetSession(token, email) {
+  localStorage.setItem(LS_SB_TOKEN, token);
+  localStorage.setItem(LS_SB_EMAIL, email);
+}
+
+function sbClearSession() {
+  localStorage.removeItem(LS_SB_TOKEN);
+  localStorage.removeItem(LS_SB_EMAIL);
+}
+
+async function sbCall(body) {
+  const res = await fetch(SUPABASE_PROXY, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+  return res.json();
+}
+
+async function authSignIn() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Email and password required'; return; }
+
+  showToast('Signing in...');
+  const data = await sbCall({ action: 'signin', email, password });
+
+  if (data.access_token) {
+    sbSetSession(data.access_token, email);
+    renderAuthState();
+    showToast('Signed in ✓');
+    // Pull cloud data on sign in
+    await syncFromCloud();
+  } else {
+    errEl.textContent = data.error_description || data.msg || 'Sign in failed';
+  }
+}
+
+async function authSignUp() {
+  const email    = document.getElementById('auth-email').value.trim();
+  const password = document.getElementById('auth-password').value;
+  const errEl    = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!email || !password) { errEl.textContent = 'Email and password required'; return; }
+  if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
+
+  showToast('Creating account...');
+  const data = await sbCall({ action: 'signup', email, password });
+
+  if (data.access_token) {
+    sbSetSession(data.access_token, email);
+    renderAuthState();
+    showToast('Account created ✓');
+    await syncToCloud();
+  } else if (data.error) {
+    errEl.textContent = data.error || 'Sign up failed';
+  } else {
+    // Email confirmation might be required
+    showToast('Check your email to confirm your account');
+  }
+}
+
+async function authSignOut() {
+  const token = sbGetToken();
+  if (token) await sbCall({ action: 'signout', token });
+  sbClearSession();
+  renderAuthState();
+  showToast('Signed out');
+}
+
+async function syncToCloud() {
+  const token = sbGetToken();
+  if (!token) { showToast('Sign in first'); return; }
+
+  const d = getData();
+  const learned = getLearnedFoods();
+  const payload = {
+    version: 2,
+    syncedAt: new Date().toISOString(),
+    settings:  { startWeight: d.startWeight, currentGoal: d.currentGoal, milestones: d.milestones },
+    weights:   { weightLogs: d.weightLogs },
+    workouts:  { workoutLogs: d.workoutLogs },
+    food:      { foodLogs: d.foodLogs, checklists: d.checklists },
+    coach:     { coachHistory: d.coachHistory },
+    learned
+  };
+
+  const statusEl = document.getElementById('sync-status');
+  if (statusEl) statusEl.textContent = 'Syncing...';
+
+  const result = await sbCall({ action: 'save', token, payload });
+
+  if (result.success) {
+    const time = new Date().toLocaleTimeString();
+    if (statusEl) statusEl.textContent = 'Last synced: ' + time;
+    lsSet('mitchfit_last_sync', { at: Date.now() });
+  } else {
+    console.error('Sync failed:', result);
+    if (statusEl) statusEl.textContent = 'Sync failed — check connection';
+    showToast('Sync failed');
+  }
+}
+
+async function syncFromCloud() {
+  const token = sbGetToken();
+  if (!token) return;
+
+  const result = await sbCall({ action: 'load', token });
+  if (!result.data) return; // no cloud data yet
+
+  const backup = result.data;
+  const d = backup;
+
+  // Only restore if cloud data is newer or local is empty
+  const localD = getData();
+  const localWorkouts = localD.workoutLogs.length;
+  const cloudWorkouts = backup.workouts?.workoutLogs?.length || 0;
+
+  if (cloudWorkouts === 0 && localWorkouts > 0) {
+    // Local has data, cloud is empty — push local up
+    await syncToCloud();
+    return;
+  }
+
+  // Restore from cloud
+  if (d.settings)  lsSet('mitchfit_settings', d.settings);
+  if (d.weights)   lsSet('mitchfit_weights',  d.weights);
+  if (d.workouts)  lsSet('mitchfit_workouts', d.workouts);
+  if (d.food)      lsSet('mitchfit_food',      d.food);
+  if (d.coach)     lsSet('mitchfit_coach',     d.coach);
+  if (d.learned)   lsSet('mitchfit_learned',   d.learned);
+
+  _cache = null;
+  _learnedCache = null;
+
+  renderAll();
+  showToast('Data loaded from cloud ✓');
+}
+
+function renderAuthState() {
+  const token   = sbGetToken();
+  const email   = sbGetEmail();
+  const form    = document.getElementById('auth-form');
+  const signedin = document.getElementById('auth-signed-in');
+  const label   = document.getElementById('auth-user-label');
+  if (!form || !signedin) return;
+
+  if (token) {
+    form.style.display = 'none';
+    signedin.style.display = 'block';
+    if (label) label.textContent = '✓ Signed in as ' + email;
+    // Show last sync time
+    const lastSync = lsGet('mitchfit_last_sync');
+    const statusEl = document.getElementById('sync-status');
+    if (statusEl && lastSync?.at) {
+      statusEl.textContent = 'Last synced: ' + new Date(lastSync.at).toLocaleTimeString();
+    }
+  } else {
+    form.style.display = 'block';
+    signedin.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════
