@@ -763,8 +763,8 @@
 <div class="header">
   <div class="header-left">
     <div class="logo">MITCH<span>FIT</span></div>
+    <div id="hdr-user" style="display:none;font-size:12px;color:var(--accent);font-weight:500;margin-left:10px;align-self:center"></div>
   </div>
-  <div id="hdr-user" style="display:none;font-size:13px;color:var(--muted);white-space:nowrap;align-self:center"></div>
   <div class="header-stats">
     <div class="header-stat">
       <span class="val" id="hdr-weight">273</span>
@@ -4853,7 +4853,15 @@ async function authSignIn() {
   if (!email || !password) { errEl.textContent = 'Email and password required'; return; }
 
   showToast('Signing in...');
-  const data = await sbCall({ action: 'signin', email, password });
+  let data;
+  try {
+    data = await sbCall({ action: 'signin', email, password });
+  } catch(e) {
+    errEl.textContent = 'Network error — is the proxy deployed? ' + e.message;
+    return;
+  }
+
+  console.log('Signin response:', JSON.stringify(data));
 
   if (data.access_token) {
     const name = localStorage.getItem(LS_SB_NAME) || '';
@@ -4861,10 +4869,11 @@ async function authSignIn() {
     renderAuthState();
     const greeting = name ? 'Welcome back, ' + name + ' ✓' : 'Signed in ✓';
     showToast(greeting);
-    // Pull cloud data on sign in
     await syncFromCloud();
   } else {
-    errEl.textContent = data.error_description || data.msg || 'Sign in failed';
+    const msg = data.error_description || data.msg || data.error || 'Sign in failed — check email and password';
+    errEl.textContent = msg;
+    showToast('Sign in failed');
   }
 }
 
@@ -4878,19 +4887,35 @@ async function authSignUp() {
   if (password.length < 6) { errEl.textContent = 'Password must be at least 6 characters'; return; }
 
   showToast('Creating account...');
-  const data = await sbCall({ action: 'signup', email, password });
+  let data;
+  try {
+    data = await sbCall({ action: 'signup', email, password });
+  } catch(e) {
+    errEl.textContent = 'Network error — is the proxy deployed? ' + e.message;
+    return;
+  }
+
+  console.log('Signup response:', JSON.stringify(data));
 
   if (data.access_token) {
+    // Immediate session — email confirm is off
     sbSetSession(data.access_token, email, name);
     renderAuthState();
     const greeting = name ? 'Welcome, ' + name + ' ✓' : 'Account created ✓';
     showToast(greeting);
     await syncToCloud();
-  } else if (data.error) {
-    errEl.textContent = data.error || 'Sign up failed';
+  } else if (data.error || data.msg || data.error_description) {
+    const msg = data.error_description || data.msg || data.error || 'Sign up failed';
+    errEl.textContent = msg;
+    showToast('Sign up failed: ' + msg);
+  } else if (data.id || data.user) {
+    // Account created but email confirmation required
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = 'Account created — check your email to confirm, then sign in.';
   } else {
-    // Email confirmation might be required
-    showToast('Check your email to confirm your account');
+    // Unknown response — show raw for debugging
+    errEl.textContent = 'Unexpected response. Check console.';
+    console.error('Unexpected signup response:', data);
   }
 }
 
