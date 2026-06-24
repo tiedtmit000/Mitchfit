@@ -764,6 +764,7 @@
   <div class="header-left">
     <div class="logo">MITCH<span>FIT</span></div>
   </div>
+  <div id="hdr-user" style="display:none;font-size:13px;color:var(--muted);white-space:nowrap;align-self:center"></div>
   <div class="header-stats">
     <div class="header-stat">
       <span class="val" id="hdr-weight">273</span>
@@ -1158,6 +1159,7 @@
         <div style="font-size:13px;color:var(--muted);margin-bottom:14px;line-height:1.6">
           Sign in to automatically sync all your data to the cloud. Works across devices and survives clearing browser history.
         </div>
+        <input type="text" id="auth-name" placeholder="Your name (for sign up)" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;box-sizing:border-box">
         <input type="email" id="auth-email" placeholder="Email" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;box-sizing:border-box">
         <input type="password" id="auth-password" placeholder="Password" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:14px;box-sizing:border-box">
         <div style="display:flex;gap:10px">
@@ -4817,18 +4819,21 @@ function showToast(msg) {
 const SUPABASE_PROXY = 'https://musical-snickerdoodle-e58f0f.netlify.app/api/supabase';
 const LS_SB_TOKEN    = 'mitchfit_sb_token';
 const LS_SB_EMAIL    = 'mitchfit_sb_email';
+const LS_SB_NAME     = 'mitchfit_sb_name';
 
 function sbGetToken() { return localStorage.getItem(LS_SB_TOKEN); }
 function sbGetEmail() { return localStorage.getItem(LS_SB_EMAIL); }
 
-function sbSetSession(token, email) {
+function sbSetSession(token, email, name) {
   localStorage.setItem(LS_SB_TOKEN, token);
   localStorage.setItem(LS_SB_EMAIL, email);
+  if (name) localStorage.setItem(LS_SB_NAME, name);
 }
 
 function sbClearSession() {
   localStorage.removeItem(LS_SB_TOKEN);
   localStorage.removeItem(LS_SB_EMAIL);
+  localStorage.removeItem(LS_SB_NAME);
 }
 
 async function sbCall(body) {
@@ -4851,9 +4856,11 @@ async function authSignIn() {
   const data = await sbCall({ action: 'signin', email, password });
 
   if (data.access_token) {
-    sbSetSession(data.access_token, email);
+    const name = localStorage.getItem(LS_SB_NAME) || '';
+    sbSetSession(data.access_token, email, name);
     renderAuthState();
-    showToast('Signed in ✓');
+    const greeting = name ? 'Welcome back, ' + name + ' ✓' : 'Signed in ✓';
+    showToast(greeting);
     // Pull cloud data on sign in
     await syncFromCloud();
   } else {
@@ -4862,6 +4869,7 @@ async function authSignIn() {
 }
 
 async function authSignUp() {
+  const name     = document.getElementById('auth-name')?.value.trim() || '';
   const email    = document.getElementById('auth-email').value.trim();
   const password = document.getElementById('auth-password').value;
   const errEl    = document.getElementById('auth-error');
@@ -4873,9 +4881,10 @@ async function authSignUp() {
   const data = await sbCall({ action: 'signup', email, password });
 
   if (data.access_token) {
-    sbSetSession(data.access_token, email);
+    sbSetSession(data.access_token, email, name);
     renderAuthState();
-    showToast('Account created ✓');
+    const greeting = name ? 'Welcome, ' + name + ' ✓' : 'Account created ✓';
+    showToast(greeting);
     await syncToCloud();
   } else if (data.error) {
     errEl.textContent = data.error || 'Sign up failed';
@@ -4994,10 +5003,19 @@ function renderAuthState() {
   const label   = document.getElementById('auth-user-label');
   if (!form || !signedin) return;
 
+  const name    = localStorage.getItem(LS_SB_NAME) || '';
+  const hdrUser = document.getElementById('hdr-user');
+
   if (token) {
     form.style.display = 'none';
     signedin.style.display = 'block';
-    if (label) label.textContent = '✓ Signed in as ' + email;
+    const displayName = name || email;
+    if (label) label.textContent = '✓ Signed in as ' + displayName;
+    // Show name in header top right
+    if (hdrUser) {
+      hdrUser.style.display = 'block';
+      hdrUser.textContent = name || '';
+    }
     // Show last sync time
     const lastSync = lsGet('mitchfit_last_sync');
     const statusEl = document.getElementById('sync-status');
@@ -5007,6 +5025,7 @@ function renderAuthState() {
   } else {
     form.style.display = 'block';
     signedin.style.display = 'none';
+    if (hdrUser) hdrUser.style.display = 'none';
   }
 }
 
