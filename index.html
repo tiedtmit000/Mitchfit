@@ -1164,7 +1164,15 @@
           <button class="btn btn-primary" style="flex:1" onclick="authSignIn()">Sign In</button>
           <button class="btn btn-outline" style="flex:1" onclick="authSignUp()">Create Account</button>
         </div>
+        <div style="text-align:center;margin-top:10px">
+          <button onclick="showForgotPassword()" style="background:none;border:none;color:var(--muted);font-size:13px;cursor:pointer;text-decoration:underline">Forgot password?</button>
+        </div>
         <div id="auth-error" style="margin-top:10px;font-size:13px;color:var(--red)"></div>
+        <div id="forgot-form" style="display:none;margin-top:12px">
+          <input type="email" id="forgot-email" placeholder="Enter your email" style="width:100%;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:14px;margin-bottom:10px;box-sizing:border-box">
+          <button class="btn btn-primary" style="width:100%" onclick="authResetPassword()">Send Reset Link</button>
+          <div id="forgot-status" style="margin-top:10px;font-size:13px;color:var(--muted)"></div>
+        </div>
       </div>
       <div id="auth-signed-in" style="display:none">
         <div style="font-size:13px;color:var(--muted);margin-bottom:12px" id="auth-user-label"></div>
@@ -4875,6 +4883,30 @@ async function authSignUp() {
     // Email confirmation might be required
     showToast('Check your email to confirm your account');
   }
+}
+
+function showForgotPassword() {
+  const form = document.getElementById('forgot-form');
+  const emailEl = document.getElementById('auth-email');
+  const forgotEmail = document.getElementById('forgot-email');
+  if (form) {
+    form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    // Pre-fill with whatever they typed in the email field
+    if (forgotEmail && emailEl && emailEl.value) forgotEmail.value = emailEl.value;
+  }
+}
+
+async function authResetPassword() {
+  const email = document.getElementById('forgot-email').value.trim();
+  const statusEl = document.getElementById('forgot-status');
+  if (!email) { statusEl.textContent = 'Enter your email first'; return; }
+
+  statusEl.textContent = 'Sending...';
+  const data = await sbCall({ action: 'resetpassword', email });
+
+  // Supabase returns 200 regardless of whether email exists — intentional security behavior
+  statusEl.style.color = 'var(--green)';
+  statusEl.textContent = 'Reset link sent — check your email. Check spam if you don't see it.';
 }
 
 async function authSignOut() {
