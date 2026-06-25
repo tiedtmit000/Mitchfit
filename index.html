@@ -5540,7 +5540,13 @@ async function syncFromCloud() {
   const backup = result.data;
   const d = backup;
 
-  // Cloud has data — restore it
+  // Validate the backup has actual data before restoring
+  const workoutCount = d.workouts?.workoutLogs?.length || 0;
+  const foodCount    = d.food?.foodLogs?.length || 0;
+  const weightCount  = d.weights?.weightLogs?.length || 0;
+
+  console.log('Cloud data — workouts:', workoutCount, 'food:', foodCount, 'weights:', weightCount);
+  showToast('Cloud: ' + workoutCount + ' workouts, ' + foodCount + ' food, ' + weightCount + ' weights');
 
   // Restore from cloud
   if (d.settings)  lsSet('mitchfit_settings', d.settings);
@@ -5553,8 +5559,12 @@ async function syncFromCloud() {
   _cache = null;
   _learnedCache = null;
 
-  renderAll();
-  showToast('Data loaded from cloud ✓');
+  // Small delay to ensure localStorage is written before re-reading
+  setTimeout(() => {
+    _cache = null;
+    renderAll();
+    showToast('Data restored from cloud ✓');
+  }, 100);
 }
 
 function renderAuthState() {
