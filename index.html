@@ -2036,7 +2036,7 @@ const EXERCISES = {
   // Golf/archery carryover: hip hinge, single-leg stability, anti-rotation core
 
   single_leg_rdl:   { name:'Single-Leg Romanian Deadlift', cat:'legs', loc:BOTH, sets:3, reps:'8 each leg', weight:'25lb DB', rest:90,
-    tip:'GOLF TRANSFER: This is the hip hinge of your impact position. Hold DB in opposite hand, hinge until you feel hamstring, drive through heel to stand. Improves swing power and prevents lower back injury.',
+    tip:'Hold DB in opposite hand for balance, hinge until you feel the hamstring stretch, drive through heel to stand. Single leg work builds the stability that carries over to every bilateral lift. Control the descent — 3 seconds down.',
     weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
 
   goblet_squat:     { name:'Goblet Squat', cat:'legs', loc:BOTH, sets:3, reps:'12', weight:'35lb KB', rest:75,
@@ -2084,7 +2084,7 @@ const EXERCISES = {
 
   kb_swing:         { name:'KB Swing', cat:'cardio', loc:HOME, sets:5, reps:'15', weight:'35lb KB', rest:45,
     tip:'Hip hinge power movement — same explosive hip extension pattern as a deadlift but ballistic. Power from glutes and hips, not arms. Start at the recommended weight, progress when the hinge pattern is locked in. High rep KB swings are serious conditioning.',
-    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+    weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   // ── DAY B: POSTERIOR CHAIN + SHOULDERS
   // Second frequency hit on hamstrings and upper back
@@ -2123,12 +2123,12 @@ const EXERCISES = {
     weightRec:{ phase1:25, phase2:35, phase3:45, machine:false, unit:'lb' } },
 
   kb_deadlift_hold: { name:'KB Deadlift Hold', cat:'cardio', loc:HOME, sets:3, reps:'40 sec', weight:'35lb KBs', rest:60,
-    tip:'Two KBs at sides, deadlift to standing, hold tall for 40 seconds. Shoulders packed, core braced, do not let hips drift. Trains the same grip, bracing, and loaded carry stimulus as farmer carry with zero walking required. Progress by increasing hold time or adding weight.',
-    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+    tip:'Two KBs at sides, deadlift to standing, hold tall for 40 seconds. Shoulders packed, core braced, do not let hips drift. Start with the 15lb KBs to lock in form, progress to 35lb.',
+    weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   single_arm_kb_dl: { name:'Single-Arm KB Deadlift', cat:'core', loc:HOME, sets:3, reps:'10 each side', weight:'35lb KB', rest:60,
-    tip:'One KB between feet slightly offset to one side. Hinge, grip with one hand, stand tall resisting the lateral lean — that anti-tilt demand is the oblique and QL work you get from a suitcase carry. Keep the working shoulder packed and hips square at the top.',
-    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+    tip:'One KB between feet slightly offset to one side. Hinge, grip with one hand, stand tall resisting the lateral lean — anti-tilt demand trains obliques and QL. Keep working shoulder packed and hips square at the top.',
+    weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   kb_farmer_carry:  { name:'KB Farmer Carry (40 steps)', cat:'cardio', loc:BOTH, sets:4, reps:'40 steps', weight:'35lb KBs', rest:60,
     tip:'Walk tall, core braced, shoulders packed. Builds grip, core, and conditioning simultaneously. One of the highest calorie burn movements per unit of time.',
@@ -2181,6 +2181,10 @@ const EXERCISES = {
     tip:'Press to full lockout overhead. Seated for strict form. Do not arch lower back. Shoulders are already your best feature — press keeps them strong and wide.',
     weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
 
+  db_pullover:      { name:'DB Pullover', cat:'pull', loc:HOME, sets:3, reps:'12', weight:'35lb DB', rest:75,
+    tip:'Lie on mat, one DB held with both hands overhead, lower behind head with straight arms, pull back over chest. Stretches and loads the lats in a completely different plane than any row. The long head of the tricep also gets loaded under stretch. Keep a slight bend in the elbows throughout.',
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:false } },
+
   kb_floor_press:   { name:'DB Floor Press', cat:'push', loc:HOME, sets:3, reps:'10', weight:'35lb DBs', rest:90,
     tip:'Lie flat, press DBs from floor. Lower until upper arms touch floor, press back up. DBs more stable than KBs for pressing — easier to control the path. Natural range of motion protects the shoulder.',
     weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:false } },
@@ -2207,8 +2211,8 @@ const EXERCISES = {
     weightRec:{ phase1:25, phase2:35, phase3:45, machine:false, unit:'lb' } },
 
   kb_row:           { name:'KB Bent-Over Row', cat:'pull', loc:HOME, sets:3, reps:'12 each side', weight:'35lb KB', rest:75,
-    tip:'Hinge 45 degrees, flat back, pull KB to hip. Keep core tight. Home substitute for cable row.',
-    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+    tip:'Hinge 45 degrees, flat back, pull KB to hip. Keep core tight. Start with 15lb to lock in the hinge pattern, progress to 35lb.',
+    weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
 
   face_pull:        { name:'Cable Face Pull', cat:'pull', loc:GYM, sets:3, reps:'15', weight:'25 lbs', rest:60,
     tip:'ARCHERY/GOLF: Rope attachment, pull to forehead height, elbows high and wide. Rear delt and rotator cuff. This is the most important shoulder health exercise you will do. Do not skip it.',
@@ -2235,7 +2239,7 @@ const EXERCISES = {
 
   kb_overhead_ext:  { name:'DB Overhead Tricep Extension', cat:'arms', loc:HOME, sets:3, reps:'12', weight:'25lb DB', rest:60,
     tip:'Hold one DB overhead with both hands cupping the top plate, lower behind head, extend back up. Keep elbows forward and close to your head. DBs are more stable and easier to control than KBs for this movement.',
-    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb', kb:false } },
+    weightRec:{ phase1:25, phase2:25, phase3:35, machine:false, unit:'lb', kb:false } },
 
   // WRIST & FOREARM STABILITY (Golf and Archery specific)
   wrist_curl:       { name:'Wrist Curl & Extension', cat:'arms', loc:BOTH, sets:2, reps:'15 each direction', weight:'15lb DB', rest:30,
@@ -2284,17 +2288,36 @@ function getWeightRecommendation(exerciseName, phase, d, exWeightRec) {
     const lastWeight = prevPerformance.weight;
     const increment = rec.kb ? 0 : 5;
     if (feedback === 'up') {
-      const next = rec.kb ? getNextKBWeight(lastWeight) : lastWeight + increment;
+      let next;
+      if (rec.kb) {
+        next = getNextKBWeight(lastWeight);
+      } else if (!rec.machine && rec.unit === 'lb') {
+        // Home DB — snap to valid weight
+        next = getNextDBWeight(lastWeight);
+        if (next === lastWeight) {
+          return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '▲', note: 'At heaviest home DB (35lb) — add reps instead of weight' };
+        }
+      } else {
+        next = lastWeight + increment;
+      }
       return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▲', note: 'Up from ' + lastWeight + 'lbs last session' };
     } else if (feedback === 'down') {
       if (rec.kb) {
         const prevKB = getPrevKBWeight(lastWeight);
         if (prevKB === lastWeight) {
-          // Already at floor KB weight — drop reps instead
           return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '▼', note: 'At lightest KB — drop 2-3 reps instead of weight' };
         }
         return { text: prevKB + ' lbs', lbs: prevKB, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
       }
+      // Home DB exercises — snap to valid DB weights (25 or 35), drop reps at floor
+      if (!rec.machine && rec.unit === 'lb') {
+        const prevDB = getPrevDBWeight(lastWeight);
+        if (prevDB === lastWeight) {
+          return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '▼', note: 'At lightest DB — drop 2-3 reps instead of weight' };
+        }
+        return { text: prevDB + ' lbs', lbs: prevDB, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
+      }
+      // Gym machines — 5lb increments
       const next = Math.max(5, lastWeight - increment);
       return { text: next + ' lbs', lbs: next, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
     } else {
@@ -2328,6 +2351,18 @@ function getNextKBWeight(current) {
 function getPrevKBWeight(current) {
   if (current >= 35) return 15;
   return 15; // 15lb is the floor — signal to drop reps instead
+}
+
+function getPrevDBWeight(current) {
+  if (current >= 35) return 25;
+  if (current >= 25) return 25; // 25 is the floor for DBs — signal to drop reps
+  return 25;
+}
+
+function getNextDBWeight(current) {
+  if (current < 25) return 25;
+  if (current < 35) return 35;
+  return 35; // 35 is ceiling for home DBs
 }
 
 // ── REST TIMER ───────────────────────────────────────────────────────────
@@ -2610,7 +2645,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         E.goblet_squat,
-        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee toward floor, drive through front heel.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        E.single_leg_rdl,
+        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:75, tip:'Step back, knee toward floor, drive through front heel.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
         { name:'Lateral Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'bodyweight', rest:75, tip:'Wide step to the side, sit into the hip, keep chest tall.', weightRec:{ phase1:0, phase2:0, phase3:0, machine:false, unit:'bw' } },
         E.glute_bridge,
         E.pallof_press_home,
@@ -2631,8 +2667,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
         E.landmine_deadlift,
       ],
       home: [
-        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'Use a sturdy chair or step, hold DBs at sides at the recommended weight. Explosive drive up through the heel, slow controlled descent. DBs add load without requiring a barbell.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
-        { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        { name:'Box Step-Up', cat:'legs', loc:HOME, sets:4, reps:'8 each leg', weight:'25lb DBs', rest:90, tip:'Use a sturdy chair or step, hold DBs at sides at the recommended weight. Explosive drive up through the heel, slow controlled descent. DBs add load without requiring a barbell.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
+        { name:'Sumo KB Squat', cat:'legs', loc:HOME, sets:3, reps:'15', weight:'35lb KB', rest:75, tip:'Wide stance, KB hanging between legs, squat deep and explode up.', weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
         E.hip_thrust,
         E.single_leg_rdl,
         E.pallof_press_home,
@@ -2654,8 +2690,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
         { ...E.landmine_deadlift, sets:3 },
       ],
       home: [
-        { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
-        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:60, tip:'Step back, lower knee toward mat, drive through front heel to stand. Stationary — fits a 4x8 mat. Same quad and glute demand as walking lunge without forward travel.', weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        { name:'KB Goblet Squat High Rep', cat:'legs', loc:HOME, sets:4, reps:'20', weight:'35lb KB', rest:60, tip:'Continuous reps, focus on breathing. Metabolic conditioning.', weightRec:{ phase1:15, phase2:35, phase3:35, machine:false, unit:'lb', kb:true } },
+        { name:'Reverse Lunge', cat:'legs', loc:HOME, sets:3, reps:'10 each leg', weight:'25lb DBs', rest:60, tip:'Step back, lower knee toward mat, drive through front heel to stand. Stationary — fits a 4x8 mat. Same quad and glute demand as walking lunge without forward travel.', weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
         { ...E.hip_thrust, reps:'20', sets:3 },
         { ...E.dead_bug, sets:3 },
         { ...E.bird_dog, sets:3 },
@@ -2796,10 +2832,10 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
       home: [
         { ...E.rdl_db, tip:'3 seconds down on every rep. At 35lbs the slow eccentric is how you make this hard enough to drive adaptation.', reps:'10 slow' },
         { ...E.kb_row, tip:'3 seconds down, full stretch at bottom, explosive pull. Same slow eccentric principle.', reps:'12 slow' },
-        { ...E.rear_delt_fly_kb, sets:4, tip:'Extra volume. 4 sets, 15 reps, 15lb KBs. Light and controlled.' },
+        { ...E.rear_delt_fly_kb, sets:4, tip:'Extra volume. 4 sets, 15 reps, 15lb DBs. Light and controlled.' },
         E.kb_shrug,
         E.hollow_hold,
-        E.plank,
+        E.kb_deadlift_hold,
       ],
     },
     // VARIANT 4: High Rep Conditioning + Posterior Pump
@@ -2867,7 +2903,7 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
   if (phase === 1) {
     const exercises = [
       isGym ? E.db_incline_press : E.kb_floor_press,
-      isGym ? E.lat_pulldown : E.kb_row,
+      isGym ? E.lat_pulldown : E.db_pullover,
       E.bicep_curl,
       E.overhead_tri_ext,
     ].map(e => scaleForPhase(e, 1));
@@ -2889,16 +2925,17 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       label: 'Push / Pull + Arm Blast',
       note: 'Horizontal push and pull supersetted — saves time and spikes heart rate. Arms at the end when pre-fatigued. The bicep supination curl is non-negotiable for peak development.',
       gym: [ E.db_incline_press, E.lat_pulldown, E.db_shoulder_press, E.cable_row, E.face_pull, E.bicep_curl, E.hammer_curl, E.cable_pushdown, E.overhead_tri_ext ],
-      home: [ E.kb_floor_press, E.kb_row, E.db_shoulder_press, E.bicep_curl, E.hammer_curl, E.kb_overhead_ext, E.overhead_tri_ext ],
+      home: [ E.kb_floor_press, E.db_pullover, E.db_shoulder_press, E.bicep_curl, E.hammer_curl, E.kb_overhead_ext, E.wrist_curl ],
     },
     // VARIANT 2: Vertical Push/Pull + Superset Arms
     2: {
       label: 'Vertical Push/Pull + Arms',
       note: 'Overhead pressing and pull-down patterns. Different shoulder and lat angle than variant 1. Lateral raises are the key to the wide-shoulder look from the front — do them every upper session.',
       gym: [
+        E.db_incline_press,
         E.db_shoulder_press,
         E.lat_pulldown,
-        { name:'Arnold Press', cat:'push', loc:GYM, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads in one movement. Named after the greatest of all time.', weightRec:{ phase1:15, phase2:25, phase3:30, machine:false, unit:'lb' } },
+        { name:'Arnold Press', cat:'push', loc:GYM, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads in one movement.', weightRec:{ phase1:25, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.cable_row,
         E.face_pull,
         E.bicep_curl,
@@ -2907,8 +2944,8 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         E.db_shoulder_press,
-        E.kb_row,
-        { name:'Arnold Press', cat:'push', loc:HOME, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads.', weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
+        E.db_pullover,
+        { name:'Arnold Press', cat:'push', loc:HOME, sets:3, reps:'12', weight:'25lb DBs', rest:75, tip:'Start palms facing you, rotate to palms forward as you press overhead. Hits all three delt heads.', weightRec:{ phase1:25, phase2:25, phase3:35, machine:false, unit:'lb' } },
         E.bicep_curl,
         E.hammer_curl,
         E.kb_overhead_ext,
@@ -2920,6 +2957,7 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       note: 'Slow eccentrics (3 seconds down) and paused reps at the bottom. Harder than it looks. This creates significantly more muscle damage and growth stimulus than regular tempo. Same weights, more results.',
       gym: [
         { ...E.db_incline_press, tip:'3 seconds down, pause 1 second at bottom, press up. Slower eccentric = more time under tension = more growth signal.', reps:'10 slow' },
+        { ...E.db_shoulder_press, tip:'3 seconds down on the press. Slow eccentrics on shoulder press build more delt mass than standard tempo.', reps:'10 slow' },
         { ...E.lat_pulldown, tip:'3 seconds down, hold at bottom for 1 second. Your lats will fail faster than usual. That is the point.', reps:'10 slow' },
         { ...E.cable_row, tip:'Pause 2 seconds at full contraction. Squeeze shoulder blades hard.', reps:'12 with pause' },
         E.face_pull,
@@ -2930,10 +2968,9 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         { ...E.kb_floor_press, tip:'3 seconds down, pause at bottom, press up.', reps:'10 slow' },
-        { ...E.db_row, tip:'3 seconds down, hold contraction for 2 seconds at top.', reps:'10 slow with pause' },
+        { ...E.db_pullover, tip:'3 seconds down to full stretch behind head, pull back over chest. Slow eccentric loads the lats harder than a fast rep.', reps:'12 slow' },
         { ...E.bicep_curl, tip:'3 seconds down on every rep. Full extension at bottom.', reps:'12 slow' },
-        { ...E.kb_overhead_ext, tip:'3 seconds down, full stretch behind head.', reps:'12 slow' },
-        E.overhead_tri_ext,
+        { ...E.kb_overhead_ext, tip:'3 seconds down, full stretch behind head. Same slow eccentric principle as the press.', reps:'12 slow' },
         E.wrist_curl,
       ],
     },
@@ -2954,11 +2991,10 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
       ],
       home: [
         { ...E.kb_floor_press, reps:'15', sets:4 },
-        { ...E.kb_row, reps:'15', sets:4 },
+        { ...E.db_pullover, reps:'15', sets:4 },
         { ...E.bicep_curl, reps:'15', sets:4 },
         { ...E.hammer_curl, reps:'15', sets:3 },
         { ...E.kb_overhead_ext, reps:'15', sets:3 },
-        { ...E.overhead_tri_ext, reps:'15', sets:3 },
         E.wrist_curl,
       ],
     },
@@ -3317,9 +3353,9 @@ function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
       + 'style="width:100%;background:rgba(59,130,246,0.1);border:1px solid var(--accent);color:var(--accent);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:var(--font);transition:all 0.2s">'
       + '⏱ Start ' + ex.rest + 's rest timer'
       + '</button>'
-      + (betweenSet ? '<div id="' + stretchId + '" style="display:none;margin-top:10px;padding:12px 14px;background:rgba(34,197,94,0.08);border:1px solid rgba(34,197,94,0.25);border-radius:8px">'
-        + '<div style="font-size:11px;font-weight:700;color:var(--green);letter-spacing:0.05em;margin-bottom:4px">🧘 STRETCH DURING REST</div>'
-        + '<div style="font-size:13px;color:var(--text);line-height:1.5">' + betweenSet + '</div>'
+      + (betweenSet ? '<div id="' + stretchId + '" style="display:none;margin-top:10px;padding:14px 16px;background:rgba(16,185,129,0.1);border:1px solid rgba(16,185,129,0.3);border-radius:10px">'
+        + '<div style="font-size:11px;font-weight:800;color:var(--green);letter-spacing:0.08em;margin-bottom:6px;text-transform:uppercase">🧘 Stretch During Rest</div>'
+        + '<div style="font-size:15px;color:var(--text);line-height:1.6;font-weight:500">' + betweenSet + '</div>'
         + '</div>' : '')
       + '</div>';
   }
