@@ -5238,7 +5238,10 @@ function showToast(msg, type) {
 // Token stored in localStorage under 'mitchfit_sb_token'
 // ═══════════════════════════════════════════
 
-const SUPABASE_PROXY = 'https://musical-snickerdoodle-e58f0f.netlify.app/api/supabase';
+// Supabase direct — anon key is safe in frontend, RLS policies protect data
+// Replace SUPABASE_ANON_KEY with your actual anon public key from Supabase dashboard
+const SUPABASE_URL      = 'https://ryzhuruihieuroxwtfua.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ5emh1cnVpaGlldXJveHd0ZnVhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODIzMjI3NTksImV4cCI6MjA5Nzg5ODc1OX0.LUskx4uZBelDaN6IhJ_HLk-PB4QtNNrpgHOWhn5oGx4';
 const LS_SB_TOKEN    = 'mitchfit_sb_token';
 const LS_SB_REFRESH  = 'mitchfit_sb_refresh';
 const LS_SB_EMAIL    = 'mitchfit_sb_email';
@@ -5269,7 +5272,7 @@ async function sbRefreshToken() {
   if (!refreshToken) return null;
 
   try {
-    const data = await sbCall({ action: 'refresh', refreshToken });
+    const data = await sbAuthCall('/token?grant_type=refresh_token', { refresh_token: refreshToken });
     if (data.access_token) {
       const email = sbGetEmail();
       const name  = localStorage.getItem(LS_SB_NAME) || '';
@@ -5304,13 +5307,33 @@ async function sbGetValidToken() {
   return await sbRefreshToken();
 }
 
-async function sbCall(body) {
-  const res = await fetch(SUPABASE_PROXY, {
+// Direct Supabase helpers — no Netlify proxy needed
+async function sbAuthCall(endpoint, body) {
+  const res = await fetch(SUPABASE_URL + '/auth/v1' + endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'apikey': SUPABASE_ANON_KEY
+    },
     body: JSON.stringify(body)
   });
   return res.json();
+}
+
+async function sbDataCall(method, path, body, token) {
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPABASE_ANON_KEY,
+    'Authorization': 'Bearer ' + token,
+  };
+  if (method === 'POST') headers['Prefer'] = 'resolution=merge-duplicates';
+  const res = await fetch(SUPABASE_URL + '/rest/v1' + path, {
+    method,
+    headers,
+    body: body ? JSON.stringify(body) : undefined
+  });
+  if (method === 'GET') return res.json();
+  return res.ok ? { success: true } : res.json();
 }
 
 async function authSignIn() {
@@ -5323,9 +5346,9 @@ async function authSignIn() {
   showToast('Signing in...');
   let data;
   try {
-    data = await sbCall({ action: 'signin', email, password });
+    data = await sbAuthCall('/token?grant_type=password', { email, password });
   } catch(e) {
-    errEl.textContent = 'Network error — is the proxy deployed? ' + e.message;
+    errEl.textContent = 'Network error: ' + e.message;
     return;
   }
 
@@ -5357,9 +5380,9 @@ async function authSignUp() {
   showToast('Creating account...');
   let data;
   try {
-    data = await sbCall({ action: 'signup', email, password });
+    data = await sbAuthCall('/signup', { email, password });
   } catch(e) {
-    errEl.textContent = 'Network error — is the proxy deployed? ' + e.message;
+    errEl.textContent = 'Network error: ' + e.message;
     return;
   }
 
@@ -5404,7 +5427,7 @@ async function authResetPassword() {
   if (!email) { statusEl.textContent = 'Enter your email first'; return; }
 
   statusEl.textContent = 'Sending...';
-  const data = await sbCall({ action: 'resetpassword', email });
+  const data = await sbAuthCall('/recover', { email });
 
   // Supabase returns 200 regardless of whether email exists — intentional security behavior
   statusEl.style.color = 'var(--green)';
@@ -5413,7 +5436,14 @@ async function authResetPassword() {
 
 async function authSignOut() {
   const token = sbGetToken();
-  if (token) await sbCall({ action: 'signout', token });
+  if (token) {
+    try {
+      await fetch(SUPABASE_URL + '/auth/v1/logout', {
+        method: 'POST',
+        headers: { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token }
+      });
+    } catch(e) {}
+  }
   sbClearSession();
   renderAuthState();
   showToast('Signed out');
@@ -5439,7 +5469,15 @@ async function syncToCloud() {
   const statusEl = document.getElementById('sync-status');
   if (statusEl) statusEl.textContent = 'Syncing...';
 
-  const result = await sbCall({ action: 'save', token, payload });
+  // Decode user_id from JWT
+  let user_id;
+  try {
+    user_id = JSON.parse(atob(token.split('.')[1])).sub;
+  } catch(e) {
+    showToast('Invalid session — please sign in again');
+    sbClearSession(); renderAuthState(); return;
+  }
+  const result = await sbDataCall('POST', '/user_data', { user_id, payload, updated_at: new Date().toISOString() }, token);
 
   console.log('Sync result:', JSON.stringify(result));
 
@@ -5460,22 +5498,22 @@ async function syncFromCloud() {
   const token = await sbGetValidToken();
   if (!token) return;
 
-  const result = await sbCall({ action: 'load', token });
-  if (!result.data) return; // no cloud data yet
+  const rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
+  if (!Array.isArray(rows) || rows.length === 0) {
+    // No cloud data yet — push local up
+    const localD = getData();
+    if (localD.workoutLogs.length > 0 || localD.foodLogs.length > 0) {
+      await syncToCloud();
+    }
+    return;
+  }
+  const result = { data: rows[0].payload };
+  if (!result.data) return;
 
   const backup = result.data;
   const d = backup;
 
-  // Only restore if cloud data is newer or local is empty
-  const localD = getData();
-  const localWorkouts = localD.workoutLogs.length;
-  const cloudWorkouts = backup.workouts?.workoutLogs?.length || 0;
-
-  if (cloudWorkouts === 0 && localWorkouts > 0) {
-    // Local has data, cloud is empty — push local up
-    await syncToCloud();
-    return;
-  }
+  // Cloud has data — restore it
 
   // Restore from cloud
   if (d.settings)  lsSet('mitchfit_settings', d.settings);
