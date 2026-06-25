@@ -1388,7 +1388,7 @@ function saveData(d) {
   lsSet(LS_FOOD,     { foodLogs:     d.foodLogs     || [], checklists: d.checklists || {} });
   lsSet(LS_COACH,    { coachHistory: d.coachHistory || [] });
   // Auto-sync to cloud if signed in — fire and forget, never blocks UI
-  if (sbGetToken()) syncToCloud().catch(e => console.warn('Cloud sync failed:', e));
+  if (sbGetToken()) sbGetValidToken().then(t => t && syncToCloud()).catch(e => console.warn('Cloud sync failed:', e));
 }
 
 const saveDataSync = saveData;
@@ -5240,22 +5240,68 @@ function showToast(msg, type) {
 
 const SUPABASE_PROXY = 'https://musical-snickerdoodle-e58f0f.netlify.app/api/supabase';
 const LS_SB_TOKEN    = 'mitchfit_sb_token';
+const LS_SB_REFRESH  = 'mitchfit_sb_refresh';
 const LS_SB_EMAIL    = 'mitchfit_sb_email';
 const LS_SB_NAME     = 'mitchfit_sb_name';
 
-function sbGetToken() { return localStorage.getItem(LS_SB_TOKEN); }
-function sbGetEmail() { return localStorage.getItem(LS_SB_EMAIL); }
+function sbGetToken()   { return localStorage.getItem(LS_SB_TOKEN); }
+function sbGetRefresh() { return localStorage.getItem(LS_SB_REFRESH); }
+function sbGetEmail()   { return localStorage.getItem(LS_SB_EMAIL); }
 
-function sbSetSession(token, email, name) {
+function sbSetSession(token, email, name, refreshToken) {
   localStorage.setItem(LS_SB_TOKEN, token);
   localStorage.setItem(LS_SB_EMAIL, email);
-  if (name) localStorage.setItem(LS_SB_NAME, name);
+  if (name)         localStorage.setItem(LS_SB_NAME, name);
+  if (refreshToken) localStorage.setItem(LS_SB_REFRESH, refreshToken);
 }
 
 function sbClearSession() {
   localStorage.removeItem(LS_SB_TOKEN);
+  localStorage.removeItem(LS_SB_REFRESH);
   localStorage.removeItem(LS_SB_EMAIL);
   localStorage.removeItem(LS_SB_NAME);
+}
+
+// Silently refresh the access token using the refresh token
+// Returns new access token or null if refresh fails
+async function sbRefreshToken() {
+  const refreshToken = sbGetRefresh();
+  if (!refreshToken) return null;
+
+  try {
+    const data = await sbCall({ action: 'refresh', refreshToken });
+    if (data.access_token) {
+      const email = sbGetEmail();
+      const name  = localStorage.getItem(LS_SB_NAME) || '';
+      sbSetSession(data.access_token, email, name, data.refresh_token || refreshToken);
+      renderAuthState();
+      return data.access_token;
+    }
+  } catch(e) {
+    console.warn('Token refresh failed:', e);
+  }
+  return null;
+}
+
+// Get a valid token — refresh silently if expired
+async function sbGetValidToken() {
+  const token = sbGetToken();
+  if (!token) return null;
+
+  // Decode JWT expiry from payload (middle segment)
+  try {
+    const payload = JSON.parse(atob(token.split('.')[1]));
+    const expiresAt = payload.exp * 1000; // convert to ms
+    const bufferMs = 60 * 1000; // refresh 60 seconds before expiry
+    if (Date.now() < expiresAt - bufferMs) return token; // still valid
+  } catch(e) {
+    // Can't decode — try to use it anyway
+    return token;
+  }
+
+  // Token expired or expiring — refresh it
+  console.log('Access token expired — refreshing silently...');
+  return await sbRefreshToken();
 }
 
 async function sbCall(body) {
@@ -5287,7 +5333,7 @@ async function authSignIn() {
 
   if (data.access_token) {
     const name = localStorage.getItem(LS_SB_NAME) || '';
-    sbSetSession(data.access_token, email, name);
+    sbSetSession(data.access_token, email, name, data.refresh_token);
     renderAuthState();
     const greeting = name ? 'Welcome back, ' + name + ' ✓' : 'Signed in ✓';
     showToast(greeting);
@@ -5321,7 +5367,7 @@ async function authSignUp() {
 
   if (data.access_token) {
     // Immediate session — email confirm is off
-    sbSetSession(data.access_token, email, name);
+    sbSetSession(data.access_token, email, name, data.refresh_token);
     renderAuthState();
     const greeting = name ? 'Welcome, ' + name + ' ✓' : 'Account created ✓';
     showToast(greeting);
@@ -5374,8 +5420,8 @@ async function authSignOut() {
 }
 
 async function syncToCloud() {
-  const token = sbGetToken();
-  if (!token) { showToast('Sign in first'); return; }
+  const token = await sbGetValidToken();
+  if (!token) { showToast('Sign in to sync'); return; }
 
   const d = getData();
   const learned = getLearnedFoods();
@@ -5411,7 +5457,7 @@ async function syncToCloud() {
 }
 
 async function syncFromCloud() {
-  const token = sbGetToken();
+  const token = await sbGetValidToken();
   if (!token) return;
 
   const result = await sbCall({ action: 'load', token });
