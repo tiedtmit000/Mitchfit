@@ -902,6 +902,12 @@
       </div>
     </div>
 
+    <div class="card" style="text-align:center;padding:14px 20px">
+      <button onclick="regenerateBrief()" class="btn btn-outline" style="width:100%;font-size:13px">
+        📊 Generate Yesterday's Recap
+      </button>
+    </div>
+
     <div class="card" id="checklist-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:0">Today's Non-Negotiables</div>
@@ -1560,16 +1566,26 @@ function renderAll() {
 // MORNING BRIEF
 // ═══════════════════════════════════════════
 
+function regenerateBrief() {
+  // Clear today's cache and re-run
+  const today = localDateStr();
+  const cacheKey = 'mitchfit_brief_' + today;
+  localStorage.removeItem(cacheKey);
+  document.getElementById('morning-brief-card').style.display = 'block';
+  document.getElementById('morning-brief-content').innerHTML = '<div style="display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px"><div class="typing-indicator"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>Regenerating...</div>';
+  checkMorningBrief();
+}
+
 async function checkMorningBrief() {
   const d = getData();
   const today = localDateStr();
   const yesterday = localYesterday();
 
-  // Show between 6am and 7pm EST only
+  // Show between 5am and 10pm Eastern time
   const nowUTC = new Date();
-  const estOffset = -5; // UTC-5 standard time; DST is -4 but close enough for these cutoffs
-  const estHour = (nowUTC.getUTCHours() + 24 + estOffset) % 24;
-  if (estHour < 6 || estHour >= 19) return;
+  const easternDate = new Date(nowUTC.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+  const estHour = easternDate.getHours();
+  if (estHour < 5 || estHour >= 22) return;
 
   // Show if yesterday has food OR workout logged
   const yesterdayFood = d.foodLogs.filter(f => f.date === yesterday);
