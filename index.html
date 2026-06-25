@@ -2484,8 +2484,10 @@ function setExerciseFeedback(exerciseName, feedback) {
 function getNextWorkoutType(d) {
   const logs = [...d.workoutLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
   const lastType = logs[0]?.type || '';
-  if (!lastType || lastType.includes('Posterior') || lastType.includes('Day B') || lastType.includes('Cardio')) return 'strength_a';
+  // Rotation: A → B → C → A → B → C
+  if (!lastType) return 'strength_a';
   if (lastType.includes('Day A') || lastType.includes('Strength A')) return 'posterior';
+  if (lastType.includes('Posterior') || lastType.includes('Day B') || lastType.includes('Cardio')) return 'strength_c';
   if (lastType.includes('Day C') || lastType.includes('Strength C')) return 'strength_a';
   return 'strength_a';
 }
