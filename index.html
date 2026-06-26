@@ -4963,7 +4963,17 @@ function saveWeight() {
 
 function renderWeightPanel() {
   const d = getData();
-  const logs = [...d.weightLogs].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let logs = [...d.weightLogs]
+    .filter(w => w.date && w.date.length >= 8)
+    .sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  // Inject start weight as first chart point
+  const hasStartEntry = logs.some(w => w.isStart);
+  if (!hasStartEntry && d.startWeight && logs.length > 0) {
+    const firstDate = new Date(logs[0].date);
+    firstDate.setDate(firstDate.getDate() - 1);
+    logs = [{ weight: d.startWeight, date: localDateStr(firstDate), isStart: true }, ...logs];
+  }
 
   if (!logs.length) return;
 
@@ -4982,26 +4992,50 @@ function renderWeightPanel() {
 
 function renderWeightHistory() {
   const d = getData();
-  const logs = [...d.weightLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+  let logs = [...d.weightLogs]
+    .filter(w => w.date && w.date.length >= 8)
+    .sort((a, b) => new Date(a.date) - new Date(b.date)); // oldest first for processing
+
+  // Inject startWeight as a virtual first entry if it doesn't already exist as the oldest log
+  const hasStartEntry = logs.some(w => w.weight === d.startWeight && w.isStart);
+  if (!hasStartEntry && d.startWeight) {
+    // Use one day before the first real log, or a fixed start label
+    let startDate = '';
+    if (logs.length > 0) {
+      const firstDate = new Date(logs[0].date);
+      firstDate.setDate(firstDate.getDate() - 1);
+      startDate = localDateStr(firstDate);
+    }
+    logs = [{ weight: d.startWeight, date: startDate, notes: 'Starting weight', isStart: true }, ...logs];
+  }
+
+  // Reverse for display (newest first)
+  const displayLogs = [...logs].reverse();
   const el = document.getElementById('weight-history');
 
-  if (!logs.length) {
+  if (!displayLogs.length) {
     el.innerHTML = '<div class="empty"><div class="icon">⚖️</div>No weight logs yet.</div>';
     return;
   }
 
-  el.innerHTML = logs.map((w, i) => {
-    const prev = logs[i + 1];
-    const diff = prev ? w.weight - prev.weight : 0;
+  el.innerHTML = displayLogs.map((w, i) => {
+    const prev = displayLogs[i + 1]; // previous in display = next chronologically
+    const diff = prev ? +(w.weight - prev.weight).toFixed(1) : null;
+    const isStart = w.isStart || diff === null;
+    const diffColor = diff === null ? '' : diff < 0 ? 'delta-pos' : diff > 0 ? 'delta-neg' : '';
+    const diffText = isStart
+      ? '<span style="color:var(--muted)">start</span>'
+      : diff === 0
+        ? '<span style="color:var(--muted)">→ same</span>'
+        : `<span class="${diffColor}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}</span>`;
+    const dateLabel = w.isStart ? (w.date || 'Starting weight') : w.date;
     return `
       <div class="log-item weight">
         <div class="log-item-left">
           <div class="log-item-name">${w.weight} lbs</div>
-          <div class="log-item-meta">${w.date}${w.notes ? ' · ' + w.notes : ''}</div>
+          <div class="log-item-meta">${dateLabel}${w.notes && !w.isStart ? ' · ' + w.notes : w.isStart ? ' · Starting weight' : ''}</div>
         </div>
-        <div class="log-item-right">
-          ${prev ? `<span class="${diff < 0 ? 'delta-pos' : 'delta-neg'}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}</span>` : '<span style="color:var(--muted)">start</span>'}
-        </div>
+        <div class="log-item-right">${diffText}</div>
       </div>
     `;
   }).join('');
