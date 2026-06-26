@@ -2191,7 +2191,7 @@ const EXERCISES = {
 
   lateral_raise:    { name:'Lateral Raise', cat:'push', loc:BOTH, sets:3, reps:'15', weight:'15lb DBs', rest:60,
     tip:'Slow and controlled, slight forward lean, thumbs slightly down. THIS is what makes shoulders look wide from the front. Medial delt — most undertrained part of the shoulder. Keep the weight light and feel the burn.',
-    weightRec:{ phase1:10, phase2:15, phase3:20, machine:false, unit:'lb' } },
+    weightRec:{ phase1:15, phase2:15, phase3:25, machine:false, unit:'lb' } },
 
   lateral_raise_kb: { name:'Lateral Raise', cat:'push', loc:HOME, sets:3, reps:'15', weight:'15lb DBs', rest:60,
     tip:'Slow and controlled, slight forward lean, thumbs slightly down. DBs are the standard tool here — more stable than KBs through the arc. Light weight, high reps, feel the burn in the medial delt.',
@@ -2208,7 +2208,7 @@ const EXERCISES = {
 
   db_row:           { name:'Single-Arm DB Row', cat:'pull', loc:BOTH, sets:3, reps:'12 each side', weight:'35lb DB', rest:75,
     tip:'Knee and hand on bench. Pull elbow toward hip pocket, not straight up. Full range — let shoulder blade slide forward at bottom, retract at top.',
-    weightRec:{ phase1:25, phase2:35, phase3:45, machine:false, unit:'lb' } },
+    weightRec:{ phase1:25, phase2:35, phase3:35, machine:false, unit:'lb' } },
 
   kb_row:           { name:'KB Bent-Over Row', cat:'pull', loc:HOME, sets:3, reps:'12 each side', weight:'35lb KB', rest:75,
     tip:'Hinge 45 degrees, flat back, pull KB to hip. Keep core tight. Start with 15lb to lock in the hinge pattern, progress to 35lb.',
@@ -2223,7 +2223,7 @@ const EXERCISES = {
 
   bicep_curl:       { name:'Bicep Curl with Supination', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:60,
     tip:'Start with palms facing each other, rotate to palms-up as you curl, pinky to ceiling at top. The supination (rotation) at the top contracts the bicep fully and builds the PEAK. Do not swing. Slow down on the way down — 3 second negative. This is where most growth happens.',
-    weightRec:{ phase1:15, phase2:20, phase3:25, machine:false, unit:'lb' } },
+    weightRec:{ phase1:15, phase2:25, phase3:35, machine:false, unit:'lb' } },
 
   hammer_curl:      { name:'Hammer Curl', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DBs', rest:60,
     tip:'Palms facing each other throughout. Trains brachialis — the muscle that pushes the bicep UP and makes arms look thicker from the front. Alternating arms. Full extension at bottom.',
@@ -2231,7 +2231,7 @@ const EXERCISES = {
 
   overhead_tri_ext: { name:'Overhead Tricep Extension', cat:'arms', loc:BOTH, sets:3, reps:'12', weight:'25lb DB', rest:60,
     tip:'Hold one DB with both hands overhead, lower behind head, press back up. Long head of tricep — the part that makes arms look big from behind and from the side. This position is the only way to fully stretch the long head. Critical for arm size.',
-    weightRec:{ phase1:20, phase2:25, phase3:35, machine:false, unit:'lb' } },
+    weightRec:{ phase1:25, phase2:25, phase3:35, machine:false, unit:'lb' } },
 
   cable_pushdown:   { name:'Tricep Cable Pushdown', cat:'arms', loc:GYM, sets:3, reps:'15', weight:'40 lbs', rest:60,
     tip:'Rope or straight bar. Elbows locked at sides, push down to full lockout, squeeze for 1 second. Lateral head of tricep — the horseshoe shape on the outside of the arm. 2/3 of upper arm size is tricep.',
@@ -2244,7 +2244,7 @@ const EXERCISES = {
   // WRIST & FOREARM STABILITY (Golf and Archery specific)
   wrist_curl:       { name:'Wrist Curl & Extension', cat:'arms', loc:BOTH, sets:2, reps:'15 each direction', weight:'15lb DB', rest:30,
     tip:'GOLF/ARCHERY: Forearms on thighs, curl wrists up then reverse. Wrist stability is the difference between consistent ball striking and flipping at impact. Also prevents the common archer elbow issue. You already have thick forearms — this is maintenance.',
-    weightRec:{ phase1:10, phase2:15, phase3:15, machine:false, unit:'lb' } },
+    weightRec:{ phase1:15, phase2:15, phase3:15, machine:false, unit:'lb' } },
 
   // ── DAY B GYM CORE — Equipment-based, no floor contact
   hanging_leg_raise: { name:"Hanging Leg Raise", cat:'core', loc:GYM, sets:3, reps:'12', weight:'bodyweight', rest:60,
@@ -2273,7 +2273,7 @@ const EXERCISES = {
 // Returns { title, type, focus, calBurn, exercises[], notes }
 
 // ── WEIGHT RECOMMENDATION ENGINE ─────────────────────────────────────────
-function getWeightRecommendation(exerciseName, phase, d, exWeightRec) {
+function getWeightRecommendation(exerciseName, phase, d, exWeightRec, isHome) {
   // Try EXERCISES lookup first, fall back to directly passed weightRec
   const exKey = Object.keys(EXERCISES).find(k => EXERCISES[k].name === exerciseName);
   const rec = exKey ? EXERCISES[exKey].weightRec : exWeightRec;
@@ -2291,8 +2291,8 @@ function getWeightRecommendation(exerciseName, phase, d, exWeightRec) {
       let next;
       if (rec.kb) {
         next = getNextKBWeight(lastWeight);
-      } else if (!rec.machine && rec.unit === 'lb') {
-        // Home DB — snap to valid weight
+      } else if (isHome && !rec.machine && rec.unit === 'lb') {
+        // Home DB — snap to valid weight (25 or 35 only)
         next = getNextDBWeight(lastWeight);
         if (next === lastWeight) {
           return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '▲', note: 'At heaviest home DB (35lb) — add reps instead of weight' };
@@ -2310,7 +2310,7 @@ function getWeightRecommendation(exerciseName, phase, d, exWeightRec) {
         return { text: prevKB + ' lbs', lbs: prevKB, prev: lastWeight, direction: '▼', note: 'Down from ' + lastWeight + 'lbs last session' };
       }
       // Home DB exercises — snap to valid DB weights (25 or 35), drop reps at floor
-      if (!rec.machine && rec.unit === 'lb') {
+      if (isHome && !rec.machine && rec.unit === 'lb') {
         const prevDB = getPrevDBWeight(lastWeight);
         if (prevDB === lastWeight) {
           return { text: lastWeight + ' lbs', lbs: lastWeight, prev: lastWeight, direction: '▼', note: 'At lightest DB — drop 2-3 reps instead of weight' };
@@ -3287,8 +3287,57 @@ function getBetweenSetActivity(exerciseName, cat) {
   return activities[exerciseName] || fallbacks[cat] || 'Breathe, prep the next exercise, adjust the weight';
 }
 
+function getTempo(ex) {
+  // Returns tempo string and meaning
+  // Format: eccentric-pause-concentric
+  const cat = ex.cat || '';
+  const name = ex.name || '';
+
+  // Cardio / carries / holds — no tempo
+  if (cat === 'cardio') return null;
+  if (['KB Deadlift Hold','KB Farmer Carry (40 steps)','Suitcase Carry (1-arm)',
+       'Plank Hold','Hollow Body Hold','Single-Arm KB Deadlift'].includes(name)) return null;
+
+  // Explosive ballistic movements — fast concentric
+  if (['KB Swing','KB Swing Intervals','Treadmill Intervals'].includes(name)) return null;
+
+  // Hinge compounds (RDL, Hip Thrust, Deadlift) — slow eccentric, controlled
+  if (cat === 'hinge' || ['Hip Thrust','Glute Bridge','Cable Pull-Through',
+      'Romanian Deadlift','DB Romanian Deadlift','Landmine Deadlift'].includes(name)) {
+    return { tempo: '3-1-1', label: '3s down · 1s pause · 1s up' };
+  }
+
+  // Leg press / squat compounds — controlled eccentric
+  if (cat === 'legs') {
+    return { tempo: '3-0-1', label: '3s down · explode up' };
+  }
+
+  // Horizontal rows and vertical pulls — controlled eccentric, squeeze at top
+  if (cat === 'pull') {
+    return { tempo: '3-1-1', label: '3s down · 1s squeeze · 1s pull' };
+  }
+
+  // Push movements (press) — controlled eccentric
+  if (cat === 'push') {
+    return { tempo: '3-1-1', label: '3s down · 1s pause · 1s press' };
+  }
+
+  // Arms — slow eccentric, squeeze at top
+  if (cat === 'arms') {
+    return { tempo: '3-0-1', label: '3s down · squeeze at top' };
+  }
+
+  // Core — controlled throughout
+  if (cat === 'core') {
+    return { tempo: '2-1-1', label: '2s down · 1s pause · 1s up' };
+  }
+
+  return { tempo: '3-0-1', label: '3s down · controlled up' };
+}
+
 function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
-  const weightRec = getWeightRecommendation(ex.name, phase, d, ex.weightRec);
+  const isHome = window._currentWorkoutPlan?.location !== 'Full Gym';
+  const weightRec = getWeightRecommendation(ex.name, phase, d, ex.weightRec, isHome);
   const isCardio = ex.cat === 'cardio';
   const isBW = weightRec && weightRec.isBW;
   const exName = ex.name.replace(/'/g, "\\'");
@@ -3370,6 +3419,7 @@ function renderExerciseBlock(ex, i, phase, d, workoutExercises) {
     + '<div style="flex:1">'
     + '<div class="ex-name-big">' + (i+1) + '. ' + ex.name + '</div>'
     + '<div class="ex-detail">' + ex.sets + ' sets · ' + ex.reps + '</div>'
+    + (getTempo(ex) ? '<div style="font-size:11px;color:var(--muted);margin-top:2px;font-family:var(--mono);letter-spacing:0.3px">⏱ ' + getTempo(ex).label + '</div>' : '')
     + '</div>'
     + weightHtml
     + '</div>'
