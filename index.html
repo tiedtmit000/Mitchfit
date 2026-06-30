@@ -4663,19 +4663,35 @@ function showEstimate(result) {
 
   const bkEl = document.getElementById('estimate-breakdown');
 
-  if (result.source === 'api' && result.apiBreakdown) {
-    bkEl.innerHTML = `<span style="color:var(--muted)">${result.apiBreakdown}</span>`;
-  } else {
+  // Store full breakdown for live recalculation on edit
+  window._estimateBreakdown = result.breakdown || null;
+
+  if (result.breakdown && result.breakdown.length > 0) {
     const srcIcon = { local: '📦', api: '🤖', learned: '💾', failed: '⚠️', hybrid: '🔀' };
-    bkEl.innerHTML = result.breakdown.map(b => {
-      const icon = srcIcon[b.source] || '📦';
-      const failed = b.source === 'failed';
-      return `<span style="color:${failed ? 'var(--red)' : 'var(--text)'}">${icon} ${b.label}</span> <span style="color:var(--muted)">(${b.qty})</span>${failed ? ' — not found, adjust manually' : ` — ${b.cal} cal, ${b.protein}g P, ${b.carbs}g C, ${b.fat}g F`}<br>`;
-    }).join('');
+    bkEl.innerHTML = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">Tap any number below to correct it — total updates automatically</div>'
+      + result.breakdown.map((b, idx) => {
+        const icon = srcIcon[b.source] || '📦';
+        const failed = b.source === 'failed';
+        return `
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px">
+            <div style="flex:1;min-width:0">
+              <div style="color:${failed ? 'var(--red)' : 'var(--text)'};font-size:13px;font-weight:600">${icon} ${b.label}</div>
+              <div style="color:var(--muted);font-size:11px">${b.qty}</div>
+            </div>
+            <div style="display:flex;gap:6px;flex-shrink:0">
+              <input type="number" value="${b.cal}" data-idx="${idx}" data-field="cal" onchange="updateBreakdownItem(this)" style="width:48px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:4px;text-align:center" title="Calories">
+              <input type="number" value="${b.protein}" data-idx="${idx}" data-field="protein" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:12px;padding:4px;text-align:center" title="Protein g">
+              <input type="number" value="${b.carbs}" data-idx="${idx}" data-field="carbs" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--yellow);font-size:12px;padding:4px;text-align:center" title="Carbs g">
+              <input type="number" value="${b.fat}" data-idx="${idx}" data-field="fat" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:12px;padding:4px;text-align:center" title="Fat g">
+            </div>
+          </div>`;
+      }).join('');
 
     if (result.hasUnknowns) {
-      bkEl.innerHTML += '<span style="color:var(--yellow)">⚠️ Some items not found — adjust numbers manually</span>';
+      bkEl.innerHTML += '<div style="color:var(--yellow);font-size:12px;margin-top:8px">⚠️ Some items not found — adjust numbers manually</div>';
     }
+  } else if (result.source === 'api' && result.apiBreakdown) {
+    bkEl.innerHTML = `<span style="color:var(--muted)">${result.apiBreakdown}</span>`;
   }
 
   box.style.borderColor = result.source === 'api' ? 'var(--green)' : 'var(--accent)';
@@ -4695,6 +4711,39 @@ function showEstimate(result) {
     // Store desc on box so aiCheckEstimate can grab it
     box.dataset.desc = document.getElementById('food-name').value.trim();
   }
+}
+
+function updateBreakdownItem(inputEl) {
+  const idx = parseInt(inputEl.dataset.idx);
+  const field = inputEl.dataset.field;
+  const newVal = parseFloat(inputEl.value) || 0;
+
+  if (!window._estimateBreakdown || !window._estimateBreakdown[idx]) return;
+
+  window._estimateBreakdown[idx][field] = newVal;
+
+  // Recalculate totals from all breakdown items
+  const totals = window._estimateBreakdown.reduce((acc, b) => ({
+    cal:     acc.cal     + (parseFloat(b.cal)     || 0),
+    protein: acc.protein + (parseFloat(b.protein) || 0),
+    carbs:   acc.carbs   + (parseFloat(b.carbs)   || 0),
+    fat:     acc.fat     + (parseFloat(b.fat)      || 0),
+  }), { cal: 0, protein: 0, carbs: 0, fat: 0 });
+
+  // Update displayed totals
+  document.getElementById('est-cal').textContent = Math.round(totals.cal);
+  document.getElementById('est-protein').textContent = Math.round(totals.protein);
+  document.getElementById('est-carbs').textContent = Math.round(totals.carbs);
+  document.getElementById('est-fat').textContent = Math.round(totals.fat);
+
+  // Update box dataset so acceptEstimate uses corrected totals
+  const box = document.getElementById('estimate-box');
+  box.dataset.cal     = Math.round(totals.cal);
+  box.dataset.protein = Math.round(totals.protein);
+  box.dataset.carbs   = Math.round(totals.carbs);
+  box.dataset.fat     = Math.round(totals.fat);
+
+  showToast('Updated ✓');
 }
 
 function acceptEstimate() {
@@ -4808,6 +4857,10 @@ function saveFood() {
 
   d.foodLogs.push(entry);
   saveDataSync(d);
+
+  // Save the FINAL numbers (after any manual edits) to learned cache
+  // so future lookups of this exact description use your corrected values
+  learnFood(entry.name.trim().toLowerCase(), entry.calories, entry.protein, entry.carbs, entry.fat);
 
   ['food-name','food-cal','food-protein','food-carbs','food-fat','food-water'].forEach(id => {
     document.getElementById(id).value = '';
