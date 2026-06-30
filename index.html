@@ -5079,8 +5079,10 @@ function renderWeightHistory() {
         ? '<span style="color:var(--muted)">→ same</span>'
         : `<span class="${diffColor}">${diff > 0 ? '+' : ''}${diff.toFixed(1)}</span>`;
     const dateLabel = w.isStart ? (w.date || 'Starting weight') : w.date;
+    const clickable = !w.isStart;
+    const onclickAttr = clickable ? ` onclick="editWeightEntry('${w.date}', ${w.weight})" style="cursor:pointer"` : '';
     return `
-      <div class="log-item weight">
+      <div class="log-item weight"${onclickAttr}>
         <div class="log-item-left">
           <div class="log-item-name">${w.weight} lbs</div>
           <div class="log-item-meta">${dateLabel}${w.notes && !w.isStart ? ' · ' + w.notes : w.isStart ? ' · Starting weight' : ''}</div>
@@ -5089,6 +5091,38 @@ function renderWeightHistory() {
       </div>
     `;
   }).join('');
+}
+
+function editWeightEntry(date, currentWeight) {
+  const newWeight = prompt('Edit weight for ' + date + ' (lbs):', currentWeight);
+  if (newWeight === null) return; // cancelled
+
+  const parsed = parseFloat(newWeight);
+  if (isNaN(parsed) || parsed <= 0 || parsed > 600) {
+    showToast('Enter a valid weight');
+    return;
+  }
+
+  const d = getData();
+  const entry = d.weightLogs.find(w => w.date === date);
+  if (!entry) {
+    showToast('Entry not found');
+    return;
+  }
+
+  entry.weight = parsed;
+  saveDataSync(d);
+  renderWeightPanel();
+  showToast('Weight updated to ' + parsed + ' lbs ✓');
+}
+
+function deleteWeightEntry(date) {
+  if (!confirm('Delete the weight entry for ' + date + '?')) return;
+  const d = getData();
+  d.weightLogs = d.weightLogs.filter(w => w.date !== date);
+  saveDataSync(d);
+  renderWeightPanel();
+  showToast('Entry deleted');
 }
 
 function renderWeightChart(logs) {
