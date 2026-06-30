@@ -1613,9 +1613,11 @@ async function checkMorningBrief() {
   }), { cal: 0, protein: 0, carbs: 0, fat: 0 });
 
   // yesterdayWorkout already declared above
-  const weightLogs = [...d.weightLogs].sort((a,b) => new Date(b.date)-new Date(a.date));
-  const currWeight = weightLogs[0]?.weight || 273;
-  const totalLost = 273 - currWeight;
+  const weightLogs = [...d.weightLogs]
+    .filter(w => w.date && w.date.length >= 8 && !w.isStart)
+    .sort((a,b) => new Date(b.date)-new Date(a.date));
+  const currWeight = weightLogs[0]?.weight || d.startWeight;
+  const totalLost = d.startWeight - currWeight;
 
   const mealLog = yesterdayFood.map(f =>
     `${f.meal}: ${f.name} (${f.calories}cal, ${f.protein}g protein)`
@@ -1624,7 +1626,7 @@ async function checkMorningBrief() {
   const prompt = `You are a no-nonsense nutrition and fitness coach. Analyze yesterday's food log for Mitch and give him a specific morning brief for today.
 
 MITCH'S STATS:
-- Current weight: ${currWeight} lbs (lost ${totalLost.toFixed(1)} lbs so far, started at 273)
+- Current weight: ${currWeight} lbs (lost ${totalLost.toFixed(1)} lbs so far, started at ${d.startWeight})
 - Daily calorie target: 2,300 cal
 - Daily protein target: 185g
 - Goal: lose weight, 3x/week workouts
@@ -1836,8 +1838,10 @@ function renderDashboard() {
   const d = getData();
   const today = localDateStr();
 
-  // Current weight
-  const wLogs = d.weightLogs.sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Current weight — filter undated entries before sorting, same fix as Weight tab
+  const wLogs = [...d.weightLogs]
+    .filter(w => w.date && w.date.length >= 8 && !w.isStart)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
   const currWeight = wLogs.length ? wLogs[0].weight : d.startWeight;
   const totalLost = d.startWeight - currWeight;
   const toGoal = currWeight - d.currentGoal;
@@ -5312,20 +5316,22 @@ async function sendCoachMessage() {
   el.appendChild(typing);
   el.scrollTop = el.scrollHeight;
 
-  // Build context
-  const wLogs = [...d.weightLogs].sort((a, b) => new Date(b.date) - new Date(a.date));
+  // Build context — filter undated/virtual entries before sorting
+  const wLogs = [...d.weightLogs]
+    .filter(w => w.date && w.date.length >= 8 && !w.isStart)
+    .sort((a, b) => new Date(b.date) - new Date(a.date));
   const todayFood = d.foodLogs.filter(f => f.date === localDateStr());
   const recentWorkouts = [...d.workoutLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 5);
   const recentFood = [...d.foodLogs].sort((a, b) => new Date(b.date) - new Date(a.date)).slice(0, 15);
 
-  const currWeight = wLogs.length ? wLogs[0].weight : 273;
-  const totalLost = 273 - currWeight;
+  const currWeight = wLogs.length ? wLogs[0].weight : d.startWeight;
+  const totalLost = d.startWeight - currWeight;
 
   const context = `
 You are a direct, no-nonsense fitness coach for Mitch Tiedt. Your job is to challenge him, hold him accountable, and give science-based advice. Do NOT coddle him or give generic encouragement. Be honest even when it's uncomfortable.
 
 MITCH'S PROFILE:
-- Male, starting weight: 273 lbs, current weight: ${currWeight} lbs
+- Male, starting weight: ${d.startWeight} lbs, current weight: ${currWeight} lbs
 - Total lost: ${totalLost.toFixed(1)} lbs
 - Current goal: ${d.currentGoal} lbs (next 5lb milestone)
 - Activity: was sedentary, now targeting 3x/week workouts
