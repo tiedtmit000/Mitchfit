@@ -1099,8 +1099,20 @@
           placeholder="e.g. 8oz grilled chicken breast, 1 cup brown rice, steamed broccoli"
           oninput="onFoodDescriptionInput()"
           onkeydown="if(event.key==='Enter'){event.preventDefault();estimateFood()}">
-        <div style="font-size:11px;color:var(--muted);margin-top:5px">
-          💡 Tips: include oz/cup/pieces · cooking method · brand name · extras like sauces
+
+        <!-- Format guide -->
+        <div style="margin-top:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px 14px">
+          <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">📐 For the most accurate estimate</div>
+          <div style="font-size:12px;color:var(--muted);line-height:2">
+            <span style="color:var(--text);font-weight:600">Quantity + protein source</span> — <span style="color:var(--muted)">3oz chicken, 2 scoops protein powder, 1 cup Greek yogurt</span><br>
+            <span style="color:var(--text);font-weight:600">Cooking method</span> — <span style="color:var(--muted)">grilled, fried, baked, raw</span><br>
+            <span style="color:var(--text);font-weight:600">Sides with quantities</span> — <span style="color:var(--muted)">1 cup rice, 1/2 cup black beans, small ear of corn</span><br>
+            <span style="color:var(--text);font-weight:600">Toppings and sauces</span> — <span style="color:var(--muted)">1 tbsp sour cream, hot sauce, shredded cheese</span><br>
+            <span style="color:var(--text);font-weight:600">Brand names when relevant</span> — <span style="color:var(--muted)">Dymatize ISO100, Chomps, RXBAR</span>
+          </div>
+          <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(59,130,246,0.1);font-size:11px;color:var(--muted)">
+            <span style="color:var(--accent)">Example:</span> 3 chicken street tacos — 3oz chicken each, corn tortillas, cilantro, onion, 1 tbsp hot sauce
+          </div>
         </div>
       </div>
 
@@ -4692,16 +4704,17 @@ function showEstimate(result) {
         const icon = srcIcon[b.source] || '📦';
         const failed = b.source === 'failed';
         return `
-          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px">
+          <div id="breakdown-row-${idx}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);gap:8px">
             <div style="flex:1;min-width:0">
               <div style="color:${failed ? 'var(--red)' : 'var(--text)'};font-size:13px;font-weight:600">${icon} ${b.label}</div>
               <div style="color:var(--muted);font-size:11px">${b.qty}</div>
             </div>
-            <div style="display:flex;gap:6px;flex-shrink:0">
+            <div style="display:flex;gap:6px;flex-shrink:0;align-items:center">
               <input type="number" value="${b.cal}" data-idx="${idx}" data-field="cal" onchange="updateBreakdownItem(this)" style="width:48px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;padding:4px;text-align:center" title="Calories">
               <input type="number" value="${b.protein}" data-idx="${idx}" data-field="protein" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--accent);font-size:12px;padding:4px;text-align:center" title="Protein g">
               <input type="number" value="${b.carbs}" data-idx="${idx}" data-field="carbs" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--yellow);font-size:12px;padding:4px;text-align:center" title="Carbs g">
               <input type="number" value="${b.fat}" data-idx="${idx}" data-field="fat" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:12px;padding:4px;text-align:center" title="Fat g">
+              <button onclick="removeBreakdownItem(${idx})" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0" title="Remove this item">×</button>
             </div>
           </div>`;
       }).join('');
@@ -4730,6 +4743,38 @@ function showEstimate(result) {
     // Store desc on box so aiCheckEstimate can grab it
     box.dataset.desc = document.getElementById('food-name').value.trim();
   }
+}
+
+function removeBreakdownItem(idx) {
+  if (!window._estimateBreakdown) return;
+
+  // Zero out this item
+  window._estimateBreakdown[idx] = { ...window._estimateBreakdown[idx], cal: 0, protein: 0, carbs: 0, fat: 0, removed: true };
+
+  // Hide the row
+  const row = document.getElementById('breakdown-row-' + idx);
+  if (row) row.style.display = 'none';
+
+  // Recalculate totals
+  const totals = window._estimateBreakdown.reduce((acc, b) => ({
+    cal:     acc.cal     + (b.removed ? 0 : parseFloat(b.cal)     || 0),
+    protein: acc.protein + (b.removed ? 0 : parseFloat(b.protein) || 0),
+    carbs:   acc.carbs   + (b.removed ? 0 : parseFloat(b.carbs)   || 0),
+    fat:     acc.fat     + (b.removed ? 0 : parseFloat(b.fat)      || 0),
+  }), { cal: 0, protein: 0, carbs: 0, fat: 0 });
+
+  document.getElementById('est-cal').textContent     = Math.round(totals.cal);
+  document.getElementById('est-protein').textContent = Math.round(totals.protein);
+  document.getElementById('est-carbs').textContent   = Math.round(totals.carbs);
+  document.getElementById('est-fat').textContent     = Math.round(totals.fat);
+
+  const box = document.getElementById('estimate-box');
+  box.dataset.cal     = Math.round(totals.cal);
+  box.dataset.protein = Math.round(totals.protein);
+  box.dataset.carbs   = Math.round(totals.carbs);
+  box.dataset.fat     = Math.round(totals.fat);
+
+  showToast('Item removed ✓');
 }
 
 function updateBreakdownItem(inputEl) {
@@ -5486,16 +5531,25 @@ async function sendCoachMessage() {
   const totalLost = d.startWeight - currWeight;
 
   const context = `
-You are a direct, no-nonsense fitness coach for Mitch Tiedt. Your job is to challenge him, hold him accountable, and give science-based advice. Do NOT coddle him or give generic encouragement. Be honest even when it's uncomfortable.
+You are a direct, no-nonsense fitness coach for Mitch Tiedt. Challenge him and hold him accountable with science-based advice. Be honest but not preachy — say it once, move on. Never repeat the same point twice in one response. Never use em dashes.
 
 MITCH'S PROFILE:
 - Male, starting weight: ${d.startWeight} lbs, current weight: ${currWeight} lbs
-- Total lost: ${totalLost.toFixed(1)} lbs
-- Current goal: ${d.currentGoal} lbs (next 5lb milestone)
-- Activity: was sedentary, now targeting 3x/week workouts
-- Calorie target: 2,300/day
-- Protein target: 185g/day
-- Plan: 2 strength days (Mon/Fri), 1 cardio+core day (Wed)
+- Total lost: ${totalLost.toFixed(1)} lbs, goal: ${d.currentGoal} lbs (next 5lb milestone)
+- Calorie target: 2,300/day — protein target: 185g/day
+- Training: 3x/week A/B/C rotation (Day A = lower body, Day B = posterior chain + shoulders, Day C = chest/lats/arms)
+- Home equipment: 15lb KB, 35lb KB, 25lb DB, 35lb DB, yoga mat
+- Has a gym membership but also works out at home
+- Has an infant at home — limited time for meal prep, especially in the morning
+- Protein is his biggest challenge — struggles to hit 185g daily
+- Background: has done yoga, lifting, various training styles — not a beginner
+- Busy outside sales rep — practical, real-world advice only
+
+LIFESTYLE CONTEXT FOR FOOD ADVICE:
+- Mornings are chaotic with the infant — no time to cook eggs or beef
+- Fast protein sources that work for him: Premier Protein shakes, Greek yogurt, cottage cheese, protein powder, Chomps sticks, RXBARs, Dymatize ISO100 (25g per scoop)
+- When suggesting meals or snacks, default to fast/no-prep options first
+- He eats real food at lunch and dinner when he has more time
 
 RECENT WEIGHT LOGS (newest first):
 ${wLogs.slice(0, 7).map(w => `${w.date}: ${w.weight} lbs${w.notes ? ' ('+w.notes+')' : ''}`).join('\n') || 'None logged yet'}
@@ -5507,11 +5561,17 @@ RECENT FOOD LOG (newest first):
 ${recentFood.map(f => `${f.date} ${f.meal}: ${f.name} (${f.calories}cal, ${f.protein}g protein)`).join('\n') || 'None logged yet'}
 
 TODAY'S NUTRITION:
-${todayFood.length ? `Total: ${todayFood.reduce((s,f)=>s+f.calories,0)} cal, ${todayFood.reduce((s,f)=>s+f.protein,0)}g protein` : 'Nothing logged today'}
+${todayFood.length ? `Logged so far: ${todayFood.reduce((s,f)=>s+f.calories,0)} cal, ${todayFood.reduce((s,f)=>s+f.protein,0)}g protein (${185 - todayFood.reduce((s,f)=>s+f.protein,0)}g protein still needed, ${2300 - todayFood.reduce((s,f)=>s+f.calories,0)} cal remaining)` : 'Nothing logged today'}
 
 WORKOUT FREQUENCY: ${d.workoutLogs.length} total workouts logged
 
-Keep responses concise (3-6 sentences usually). Be specific — reference actual data from their logs. Push back when needed. Celebrate real wins but don't manufacture fake ones.
+RESPONSE RULES:
+- Be specific — always reference actual numbers from their logs
+- For meal advice: give specific foods with specific protein/calorie numbers
+- For protein gaps: calculate exactly how much is needed and suggest concrete options to fill it
+- Keep it concise — 3-5 sentences max unless they ask for detail
+- Say it once and move on — no repeating points or moralizing
+- Never use em dashes
   `.trim();
 
   // Build messages
@@ -5531,7 +5591,7 @@ Keep responses concise (3-6 sentences usually). Be specific — reference actual
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         model: 'claude-sonnet-4-6',
-        max_tokens: 500,
+        max_tokens: 800,
         system: context,
         messages
       })
