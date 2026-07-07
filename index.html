@@ -1104,14 +1104,14 @@
         <div style="margin-top:10px;background:rgba(59,130,246,0.06);border:1px solid rgba(59,130,246,0.15);border-radius:10px;padding:12px 14px">
           <div style="font-size:11px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">📐 For the most accurate estimate</div>
           <div style="font-size:12px;color:var(--muted);line-height:2">
-            <span style="color:var(--text);font-weight:600">Quantity + protein source</span> — <span style="color:var(--muted)">3oz chicken, 2 scoops protein powder, 1 cup Greek yogurt</span><br>
-            <span style="color:var(--text);font-weight:600">Cooking method</span> — <span style="color:var(--muted)">grilled, fried, baked, raw</span><br>
-            <span style="color:var(--text);font-weight:600">Sides with quantities</span> — <span style="color:var(--muted)">1 cup rice, 1/2 cup black beans, small ear of corn</span><br>
-            <span style="color:var(--text);font-weight:600">Toppings and sauces</span> — <span style="color:var(--muted)">1 tbsp sour cream, hot sauce, shredded cheese</span><br>
-            <span style="color:var(--text);font-weight:600">Brand names when relevant</span> — <span style="color:var(--muted)">Dymatize ISO100, Chomps, RXBAR</span>
+            <span style="color:var(--text);font-weight:600">Quantity + protein source</span>: <span style="color:var(--muted)">3oz chicken, 2 scoops protein powder, 1 cup Greek yogurt</span><br>
+            <span style="color:var(--text);font-weight:600">Cooking method</span>: <span style="color:var(--muted)">grilled, fried, baked, raw</span><br>
+            <span style="color:var(--text);font-weight:600">Sides with quantities</span>: <span style="color:var(--muted)">1 cup rice, 1/2 cup black beans, small ear of corn</span><br>
+            <span style="color:var(--text);font-weight:600">Toppings and sauces</span>: <span style="color:var(--muted)">1 tbsp sour cream, hot sauce, shredded cheese</span><br>
+            <span style="color:var(--text);font-weight:600">Brand names when relevant</span>: <span style="color:var(--muted)">Dymatize ISO100, Chomps, RXBAR</span>
           </div>
           <div style="margin-top:10px;padding-top:8px;border-top:1px solid rgba(59,130,246,0.1);font-size:11px;color:var(--muted)">
-            <span style="color:var(--accent)">Example:</span> 3 chicken street tacos — 3oz chicken each, corn tortillas, cilantro, onion, 1 tbsp hot sauce
+            <span style="color:var(--accent)">Example:</span> 3 chicken street tacos, 3oz chicken each, corn tortillas, cilantro, onion, 1 tbsp hot sauce
           </div>
         </div>
       </div>
@@ -4394,20 +4394,21 @@ function pickClarification(segIdx, optionIdx) {
 // Look up multiple segments in a single API call — efficient and cheap
 async function lookupRestaurantMealViaAPI(desc) {
   try {
-    const prompt = `You are a precise nutrition database. The user ate a restaurant meal with specific customizations.
+    const prompt = `You are a precise nutrition lookup tool. Use ONLY actual published nutrition label data. Never estimate when label data exists.
 
-Meal description: "${desc}"
+Input: "${desc}"
 
-Instructions:
-- Identify the restaurant if named and use their ACTUAL published nutrition data
-- Break the meal into its components (protein, base, toppings, sauces, extras)
-- Account for ALL customizations exactly as described (double protein = 2x standard, light rice = half portion, etc.)
-- Use the restaurant's actual portion weights, not generic estimates
-- If Chipotle: chicken standard = 4oz, double protein = 8oz. Rice standard = 4oz, light = 2oz. Black beans = 4oz. Cheese = 1oz. Lettuce = 1oz. Corn salsa = 3.5oz. Hot salsa = 2oz. Creamy basil sauce = 2oz.
-- Return ONLY a JSON array, no other text, no markdown
+Rules:
+1. If a brand name is present, look up the EXACT product nutrition facts from the label. Do not estimate or approximate.
+2. For branded yogurt drinks, protein shakes, bars, and packaged foods: use the exact label macros. These are fixed values that do not change.
+3. For restaurant meals: use the restaurant's published nutrition data. Account for all customizations (double protein = 2x, light = half, etc.)
+4. Break multi-item descriptions into individual components.
+5. Return ONLY a JSON array. No text, no markdown.
 
-Format — one object per component:
-[{"cal":0,"protein":0,"carbs":0,"fat":0,"label":"component name","qty":"exact portion"}]`;
+Chipotle reference portions: chicken standard 4oz, double 8oz. Rice standard 4oz, light 2oz. Black beans 4oz. Cheese 1oz. Lettuce 1oz. Corn salsa 3.5oz. Hot salsa 2oz. Creamy basil sauce 2oz.
+
+Format:
+[{"cal":0,"protein":0,"carbs":0,"fat":0,"label":"product name","qty":"exact serving size from label"}]`;
 
     const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
@@ -4462,12 +4463,16 @@ ${listStr}
 Format (one object per item, same order):
 [{"cal":0,"protein":0,"carbs":0,"fat":0,"label":"short name","qty":"serving size used"},...]
 
-Rules:
-- Use USDA nutritional values
+Serving size priority rules — apply in this exact order:
+
+1. EXPLICIT QUANTITY STATED: If the user specified a quantity (1 cup, 3oz, 2 scoops, 1 bottle), use that exact quantity. No adjustment. This overrides everything below.
+
+2. BRANDED PACKAGED PRODUCT: If a brand name is present and the product is a fixed-serving package (yogurt drink, protein shake, bar, stick, can), use the exact nutrition label for that specific SKU. Do not estimate. Examples: Chobani Strawberries and Creme Drink = 170 cal, 20g protein, 14g carbs, 3g fat per 10 fl oz bottle. Premier Protein = 160 cal, 30g protein, 5g carbs, 3g fat. Dymatize ISO100 per scoop = 120 cal, 25g protein, 2g carbs, 0.5g fat. Chomps beef stick = 100 cal, 10g protein, 0g carbs, 7g fat. RXBAR = 210 cal, 12g protein, 24g carbs, 9g fat.
+
+3. UNBRANDED WHOLE FOOD, NO QUANTITY STATED: Use realistic American consumption amounts, not FDA label serving sizes. FDA servings are set by manufacturers and do not reflect actual intake. Realistic defaults: chicken breast = 7oz cooked, pasta = 10oz cooked, steak = 10oz, rice = 10oz cooked, bagel = 4oz, burger patty = 6oz, salmon = 6oz fillet.
+
 - Integers only for cal/protein/carbs/fat
-- CRITICAL: Use real-world American portion sizes, NOT FDA label serving sizes. FDA servings are set by manufacturers to minimize apparent calories and do not reflect what people actually eat. Examples of correct real-world defaults: chicken breast = 7oz cooked (not 3oz), pasta = 10oz cooked (not 2oz), steak = 10oz (not 3oz), bagel = 4oz (not 1oz), rice = 10oz cooked (not 4oz), beer = 12oz can, soda = 12oz can.
-- If a quantity is explicitly stated in the description, use that exact quantity
-- If no quantity is stated, use the realistic amount an average American would consume in one sitting`;
+- Note the serving size applied in the qty field so the user can verify`;
 
     const response = await fetch('https://musical-snickerdoodle-e58f0f.netlify.app/api/anthropic', {
       method: 'POST',
