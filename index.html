@@ -3976,7 +3976,13 @@ async function estimateFood() {
     .replace(/\bbread\s*(?:&|and)\s*butter\b/gi, 'BREAD_BUTTER')
     .replace(/\bcookies?\s*(?:&|and)\s*cream\b/gi, 'COOKIES_CREAM')
     .replace(/\bpeanut\s*butter\s*(?:&|and)\s*jelly\b/gi, 'PBJ')
-    .replace(/\bsalt\s*(?:&|and)\s*pepper\b/gi, 'SALT_PEPPER');
+    .replace(/\bsalt\s*(?:&|and)\s*pepper\b/gi, 'SALT_PEPPER')
+    // Chobani product names that contain "and" mid-name
+    .replace(/chobani\s+\w[\w\s]*(?:and|&)[\w\s]*(?:yogurt|drink|flip|crunch|bite)/gi, m => 'CHOBANI_PRODUCT_' + m.replace(/\s+/g, '_'))
+    // Greek yogurt flavors: strawberries and cream, peaches and cream, etc.
+    .replace(/(\w+)\s+(?:and|&)\s+(cream|honey)\s+(?:yogurt|drink)/gi, m => 'YOGURT_FLAVOR_' + m.replace(/\s+/g, '_'))
+    // "Creme and berries" style Chobani descriptors
+    .replace(/creme\s+(?:and|&)\s+berries/gi, 'CREME_AND_BERRIES');
 
   const hasComma = brandProtected.includes(',');
   const splitPattern = hasComma
@@ -3992,6 +3998,9 @@ async function estimateFood() {
       .replace(/COOKIES_CREAM/g, 'cookies and cream')
       .replace(/PBJ/g, 'peanut butter and jelly')
       .replace(/SALT_PEPPER/g, 'salt and pepper')
+      .replace(/CHOBANI_PRODUCT_[\w_]+/g, m => m.replace('CHOBANI_PRODUCT_', '').replace(/_/g, ' '))
+      .replace(/YOGURT_FLAVOR_[\w_]+/g, m => m.replace('YOGURT_FLAVOR_', '').replace(/_/g, ' '))
+      .replace(/CREME_AND_BERRIES/g, 'creme and berries')
     )
     .filter(s => {
       if (!s) return false;
@@ -4171,51 +4180,81 @@ async function estimateFood() {
 const COMPLEX_FOODS = [
   {
     triggers: ['dip','spread','dipping'],
-    question: 'What kind of base?',
+    question: 'What is the base?',
     options: [
-      { label: 'Cream cheese based', context: 'cream cheese based dip, roughly 70% cream cheese to 30% mix-ins, standard ratio' },
-      { label: 'Sour cream based',   context: 'sour cream based dip, roughly 70% sour cream to 30% mix-ins, standard ratio' },
-      { label: 'Mayo based',         context: 'mayonnaise based dip, roughly 65% mayo to 35% mix-ins, standard ratio' },
+      { label: 'Cream cheese',  context: 'cream cheese based dip, roughly 70% cream cheese to 30% mix-ins' },
+      { label: 'Sour cream',    context: 'sour cream based dip, roughly 70% sour cream to 30% mix-ins' },
+      { label: 'Mayo',          context: 'mayonnaise based dip, roughly 65% mayo to 35% mix-ins' },
+      { label: 'Greek yogurt',  context: 'greek yogurt based dip, lower fat, high protein, 70% yogurt to 30% mix-ins' },
     ]
   },
   {
     triggers: ['soup','chowder','bisque','stew'],
-    question: 'What kind of base?',
+    question: 'What is the base?',
     options: [
-      { label: 'Broth based',        context: 'broth based soup, lean, low fat' },
-      { label: 'Cream based',        context: 'cream or milk based soup, higher fat, richer' },
+      { label: 'Broth based',   context: 'broth based soup, lean, low fat, under 100 cal per cup' },
+      { label: 'Cream based',   context: 'cream or milk based soup, higher fat, 150-200 cal per cup' },
+      { label: 'Tomato based',  context: 'tomato based soup, low-medium fat, 80-120 cal per cup' },
     ]
   },
   {
     triggers: ['sauce','gravy'],
-    question: 'What kind of sauce?',
+    question: 'What type of sauce?',
     options: [
-      { label: 'Tomato / marinara',  context: 'tomato based sauce, low fat, standard Italian ratio' },
-      { label: 'Cream / alfredo',    context: 'cream butter based sauce, high fat, standard alfredo ratio' },
+      { label: 'Tomato / marinara', context: 'tomato based sauce, low fat, roughly 80 cal per half cup' },
+      { label: 'Cream / alfredo',   context: 'cream butter based sauce, high fat, roughly 200 cal per half cup' },
+      { label: 'BBQ',               context: 'BBQ sauce, sugar forward, roughly 60 cal per 2 tbsp, minimal fat' },
+      { label: 'Hot sauce',         context: 'vinegar based hot sauce, near zero calories, under 5 cal per tbsp' },
     ]
   },
   {
     triggers: ['casserole','bake','gratin'],
     question: 'What style?',
     options: [
-      { label: 'Lighter / veggie',   context: 'lighter casserole, vegetable forward, minimal cream or cheese' },
-      { label: 'Creamy / cheesy',    context: 'rich casserole with cream of mushroom or cheese base, standard American recipe ratio' },
+      { label: 'Light / veggie',    context: 'lighter casserole, vegetable forward, minimal cream or cheese' },
+      { label: 'Creamy / cheesy',   context: 'rich casserole with cream of mushroom or cheese base, standard American recipe' },
     ]
   },
   {
     triggers: ['salad dressing','dressing','vinaigrette'],
     question: 'What type of dressing?',
     options: [
-      { label: 'Oil based',          context: 'oil and vinegar vinaigrette, standard 3:1 oil to acid ratio' },
-      { label: 'Creamy',             context: 'creamy dressing like ranch or caesar, mayo or buttermilk base' },
+      { label: 'Oil based',         context: 'oil and vinegar vinaigrette, standard 3:1 ratio, about 120 cal per 2 tbsp' },
+      { label: 'Creamy',            context: 'creamy dressing like ranch or caesar, mayo base, about 140 cal per 2 tbsp' },
+      { label: 'Light / fat-free',  context: 'light or fat-free dressing, 30-60 cal per 2 tbsp' },
     ]
   },
   {
-    triggers: ['smoothie','shake'],
-    question: 'What base?',
+    // Only triggers if NOT a branded protein product (those go straight to AI)
+    triggers: ['smoothie'],
+    question: 'What is the liquid base?',
     options: [
-      { label: 'Milk / yogurt',      context: 'dairy based smoothie with milk or greek yogurt, moderate calories' },
-      { label: 'Juice / water',      context: 'juice or water based smoothie, lower calorie, no dairy' },
+      { label: 'Milk',              context: 'whole or 2% milk based smoothie, adds protein and fat, about 150 cal per cup of milk' },
+      { label: 'Almond / oat milk', context: 'plant milk based smoothie, lower protein, 30-120 cal per cup depending on type' },
+      { label: 'Water',             context: 'water based smoothie, zero added calories from liquid' },
+      { label: 'Juice',             context: 'fruit juice based smoothie, adds 100-140 cal and 25-30g sugar per cup of juice' },
+    ]
+  },
+  {
+    // Generic protein shake with no brand name — branded ones go straight to AI
+    triggers: ['protein shake','protein powder','whey protein','casein protein'],
+    question: 'What are you mixing it with?',
+    options: [
+      { label: 'Water',             context: 'mixed with water only, adds zero calories, use only the protein powder macros' },
+      { label: 'Milk (whole)',       context: 'mixed with 8oz whole milk, adds 150 cal, 8g protein, 12g carbs, 8g fat' },
+      { label: 'Milk (skim)',        context: 'mixed with 8oz skim milk, adds 90 cal, 9g protein, 12g carbs, 0g fat' },
+      { label: 'Almond milk',       context: 'mixed with 8oz unsweetened almond milk, adds 30 cal, 1g protein, 1g carbs, 2.5g fat' },
+    ]
+  },
+  {
+    triggers: ['yogurt'],
+    // Only fires if no brand name detected
+    question: 'What type of yogurt?',
+    options: [
+      { label: 'Greek (plain)',      context: 'plain greek yogurt, high protein, roughly 100 cal and 17g protein per cup' },
+      { label: 'Greek (flavored)',   context: 'flavored greek yogurt, slightly higher sugar, roughly 120-150 cal and 12-15g protein per cup' },
+      { label: 'Regular / low-fat', context: 'regular or low-fat yogurt, lower protein than greek, roughly 120-150 cal and 8-10g protein per cup' },
+      { label: 'Skyr / Icelandic',  context: 'skyr or icelandic yogurt, very high protein similar to greek, roughly 100 cal and 17g protein per cup' },
     ]
   },
 ];
@@ -4252,8 +4291,24 @@ function isRestaurantMeal(desc) {
   return false;
 }
 
+// Brand names that make clarification redundant — AI already knows exact macros
+const KNOWN_BRANDS = [
+  'chobani','fage','siggi','oikos','dannon','yoplait','stonyfield',
+  'fairlife','premier protein','muscle milk','core power','dymatize',
+  'optimum nutrition','myprotein','ghost','cellucor','isopure',
+  'rxbar','kind','quest','larabar','clif','pure protein',
+  'chomps','epic','jack links','old spice','paleovalley',
+  'silk','califia','oatly','ripple','bolthouse','naked juice',
+  'tropicana','simply orange','minute maid','odwalla',
+];
+
 function needsClarification(seg) {
   const lower = seg.toLowerCase();
+
+  // Skip clarification if a known brand is already present
+  // The AI can look up exact product macros without needing a question
+  if (KNOWN_BRANDS.some(b => lower.includes(b))) return null;
+
   for (const group of COMPLEX_FOODS) {
     if (group.triggers.some(t => {
       const escaped = t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -4715,6 +4770,7 @@ function showEstimate(result) {
               <input type="number" value="${b.carbs}" data-idx="${idx}" data-field="carbs" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--yellow);font-size:12px;padding:4px;text-align:center" title="Carbs g">
               <input type="number" value="${b.fat}" data-idx="${idx}" data-field="fat" onchange="updateBreakdownItem(this)" style="width:38px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;color:var(--red);font-size:12px;padding:4px;text-align:center" title="Fat g">
               <button onclick="removeBreakdownItem(${idx})" style="background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:2px 4px;line-height:1;flex-shrink:0" title="Remove this item">×</button>
+              ${b.source === 'learned' || b.source === 'learned (partial)' ? '<button onclick="clearLearnedEntry(\'' + b.label + '\',' + idx + ')" style="background:none;border:none;color:var(--red);font-size:9px;cursor:pointer;padding:2px 3px;line-height:1.2;flex-shrink:0;font-family:var(--mono)" title="Clear from memory">🗑</button>' : ''}
             </div>
           </div>`;
       }).join('');
@@ -4743,6 +4799,30 @@ function showEstimate(result) {
     // Store desc on box so aiCheckEstimate can grab it
     box.dataset.desc = document.getElementById('food-name').value.trim();
   }
+}
+
+function clearLearnedEntry(label, idx) {
+  const learned = getLearnedFoods();
+  const lower = label.trim().toLowerCase();
+
+  // Find and delete matching key
+  let deleted = false;
+  for (const key of Object.keys(learned)) {
+    if (key === lower || key.includes(lower) || lower.includes(key)) {
+      delete learned[key];
+      deleted = true;
+    }
+  }
+
+  if (deleted) {
+    saveLearnedFoods(learned);
+    showToast('Cleared from memory. Next lookup will use AI.');
+  } else {
+    showToast('Not found in memory');
+  }
+
+  // Also remove from breakdown display
+  removeBreakdownItem(idx);
 }
 
 function removeBreakdownItem(idx) {
