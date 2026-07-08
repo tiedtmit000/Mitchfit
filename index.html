@@ -1572,22 +1572,8 @@ function init() {
   // Recover data from old single-key storage first, then fix any date issues
   recoverLegacyData();
   migrateUTCDates();
-  // Restore auth UI state and sync from cloud if signed in
+  // Restore auth UI state
   renderAuthState();
-  if (sbGetToken()) {
-    // Show loading banner while cloud sync runs
-    const alertEl = document.getElementById('dash-alert');
-    if (alertEl) {
-      alertEl.innerHTML = '<div class="alert alert-blue" style="text-align:center;font-size:12px">☁️ Loading your data...</div>';
-    }
-    syncFromCloud()
-      .then(() => { if (alertEl) alertEl.innerHTML = ''; renderAll(); })
-      .catch(e => {
-        console.warn('Initial sync failed:', e);
-        if (alertEl) alertEl.innerHTML = '';
-        renderAll();
-      });
-  }
 
   // Purge garbage learned cache entries
   const learned = getLearnedFoods();
@@ -1600,14 +1586,17 @@ function init() {
   }
   if (dirty) saveLearnedFoods(learned);
 
+  // Render immediately with whatever is in localStorage
   renderAll();
   setupCoach();
 
   // Fire morning brief async — non-blocking
   checkMorningBrief();
 
-  // If not signed in, do a single re-render after localStorage settles
-  if (!sbGetToken()) setTimeout(() => renderAll(), 100);
+  // Sync from cloud in background — re-renders when data arrives
+  if (sbGetToken()) {
+    syncFromCloud().catch(e => console.warn('Initial sync failed:', e));
+  }
 }
 
 
