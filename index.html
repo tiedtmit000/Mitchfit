@@ -907,6 +907,28 @@
   <div class="panel active" id="panel-dashboard">
     <div id="dash-alert"></div>
 
+
+    <!-- HERO WEIGHT CARD -->
+    <div class="card" style="text-align:center;padding:20px;margin-bottom:14px;position:relative;overflow:hidden">
+      <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.07) 0%,transparent 70%);pointer-events:none"></div>
+      <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Current Weight</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:8px">
+        <div id="dash-weight" style="font-size:64px;font-weight:800;font-family:var(--mono);line-height:1;color:var(--accent);text-shadow:0 0 20px rgba(59,130,246,0.4);transition:color 0.5s,text-shadow 0.5s">—</div>
+        <div style="font-size:20px;color:var(--muted);font-weight:600">lbs</div>
+      </div>
+      <div id="dash-weight-delta" style="font-size:13px;color:var(--muted);margin-top:4px;font-family:var(--mono)">—</div>
+      <div style="margin-top:14px">
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
+          <span id="prog-start-lbl">start</span>
+          <span id="prog-pct" style="color:var(--accent);font-weight:700;font-family:var(--mono)">0%</span>
+          <span>Goal: <span id="dash-goal" style="color:var(--accent)">—</span> lbs</span>
+        </div>
+        <div class="progress-wrap">
+          <div class="progress-bar green" id="prog-bar" style="width:0%"></div>
+        </div>
+      </div>
+    </div>
+
     <!-- YESTERDAY'S RECAP -->
     <div id="morning-brief-card" style="display:none" class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
@@ -939,33 +961,21 @@
       <div id="checklist-message" style="font-size:12px;color:var(--muted);margin-top:8px;text-align:center"></div>
     </div>
 
-    <div class="grid-3" style="margin-bottom:16px">
-      <div class="stat-box">
-        <div class="val" id="dash-weight">273</div>
-        <div class="lbl">Current Weight</div>
-        <div class="delta" id="dash-weight-delta">—</div>
-      </div>
-      <div class="stat-box">
-        <div class="val" id="dash-goal">268</div>
-        <div class="lbl">Next Goal (lbs)</div>
-        <div class="delta" style="color:var(--muted)">5lb milestone</div>
-      </div>
+    <div class="grid-3" style="margin-bottom:14px">
       <div class="stat-box">
         <div class="val" id="dash-calories">—</div>
         <div class="lbl">Cals Today</div>
-        <div class="delta" id="dash-cal-delta">target: 2,300</div>
+        <div class="delta" id="dash-cal-delta" style="color:var(--muted)">target: 2,300</div>
       </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">Progress to Next Milestone</div>
-      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
-        <span>273 lbs <span style="color:var(--muted)">(start)</span></span>
-        <span id="prog-pct" style="color:var(--accent);font-family:var(--mono)">0%</span>
-        <span>268 lbs <span style="color:var(--muted)">(goal)</span></span>
+      <div class="stat-box">
+        <div class="val" id="dash-protein-val">—</div>
+        <div class="lbl">Protein g</div>
+        <div class="delta" id="dash-protein-delta" style="color:var(--muted)">goal: 185g</div>
       </div>
-      <div class="progress-wrap">
-        <div class="progress-bar green" id="prog-bar" style="width:0%"></div>
+      <div class="stat-box">
+        <div class="val" id="dash-workout-today">—</div>
+        <div class="lbl">Workout</div>
+        <div class="delta" id="dash-workout-delta" style="color:var(--muted)">today</div>
       </div>
     </div>
 
@@ -1034,10 +1044,11 @@
       <div class="form-group">
         <label>How much time do you have?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:4px" id="time-btns">
-          <button class="sel-btn" onclick="selectTime('20')" data-val="20">⚡ 20 min<br><span>Express burn</span></button>
-          <button class="sel-btn" onclick="selectTime('30')" data-val="30">🔥 30 min<br><span>Efficient session</span></button>
-          <button class="sel-btn" onclick="selectTime('45')" data-val="45">💪 45 min<br><span>Full workout</span></button>
-          <button class="sel-btn" onclick="selectTime('60')" data-val="60">🏆 60+ min<br><span>Maximum results</span></button>
+          <button class="sel-btn" onclick="selectTime('15')" data-val="15">⚡ 15 min<br><span>Something beats nothing</span></button>
+          <button class="sel-btn" onclick="selectTime('20')" data-val="20">🔥 20 min<br><span>Express burn</span></button>
+          <button class="sel-btn" onclick="selectTime('30')" data-val="30">💪 30 min<br><span>Efficient session</span></button>
+          <button class="sel-btn" onclick="selectTime('45')" data-val="45">🏆 45 min<br><span>Full workout</span></button>
+          <button class="sel-btn" onclick="selectTime('60')" data-val="60">👑 60+ min<br><span>Maximum results</span></button>
         </div>
       </div>
 
@@ -1767,6 +1778,14 @@ const CHECKLIST_ITEMS = [
     check: (d, today) => d.weightLogs.some(w => w.date === today)
   },
   {
+    id: 'workout',
+    icon: '💪',
+    label: 'Move today (even 15 min)',
+    sub: 'Auto-checked when you log any workout',
+    auto: true,
+    check: (d, today) => d.workoutLogs.some(w => w.date === today)
+  },
+  {
     id: 'nocutoff',
     icon: '🚫',
     label: 'No food after 8pm',
@@ -1776,11 +1795,11 @@ const CHECKLIST_ITEMS = [
 ];
 
 const CHECKLIST_MESSAGES = [
-  { min: 0, max: 0,  msg: 'Start somewhere. Tap water first — it costs nothing.' },
-  { min: 1, max: 2,  msg: 'Moving. Don\'t stop here.' },
-  { min: 3, max: 3,  msg: 'Halfway. Good but not done.' },
-  { min: 4, max: 4,  msg: 'One away. Finish it.' },
-  { min: 5, max: 5,  msg: '✅ Clean day. This is what consistent looks like.' }
+  { min: 0, max: 0,  msg: 'Start somewhere. Pick one and do it.' },
+  { min: 1, max: 2,  msg: "Moving. Don't stop here." },
+  { min: 3, max: 4,  msg: 'More than halfway. Keep going.' },
+  { min: 5, max: 5,  msg: 'One away. Finish it.' },
+  { min: 6, max: 6,  msg: 'Clean day. This is what consistent looks like.' }
 ];
 
 
@@ -1879,15 +1898,35 @@ function renderDashboard() {
 
   document.getElementById('hdr-weight').textContent = currWeight;
   document.getElementById('hdr-lost').textContent = totalLost > 0 ? totalLost.toFixed(1) : '0';
-  document.getElementById('dash-weight').textContent = currWeight;
-  document.getElementById('dash-goal').textContent = d.currentGoal;
+
+  // Weight trend vs 7 days ago
+  const weekAgoLogs = wLogs.filter(w => new Date(w.date) <= new Date(Date.now() - 6*86400000));
+  const weekAgoWeight = weekAgoLogs.length ? weekAgoLogs[0].weight : d.startWeight;
+  const weekDiff = currWeight - weekAgoWeight;
+  const weightColor = weekDiff < -0.4 ? 'var(--green)' : weekDiff > 0.4 ? 'var(--red)' : 'var(--yellow)';
+  const weightArrow = weekDiff < -0.4 ? '↓' : weekDiff > 0.4 ? '↑' : '→';
+  const weightGlow  = weekDiff < -0.4 ? 'rgba(16,185,129,0.4)' : weekDiff > 0.4 ? 'rgba(239,68,68,0.4)' : 'rgba(245,158,11,0.4)';
+
+  // Hero weight
+  const dashWeightEl = document.getElementById('dash-weight');
+  if (dashWeightEl) {
+    dashWeightEl.textContent = currWeight;
+    dashWeightEl.style.color = weightColor;
+    dashWeightEl.style.textShadow = '0 0 20px ' + weightGlow;
+  }
+  if (document.getElementById('dash-goal')) document.getElementById('dash-goal').textContent = d.currentGoal;
 
   // Weight delta
   const wDelta = document.getElementById('dash-weight-delta');
-  if (wLogs.length >= 2) {
-    const diff = wLogs[0].weight - wLogs[1].weight;
-    wDelta.textContent = (diff > 0 ? '+' : '') + diff.toFixed(1) + ' from last';
-    wDelta.className = 'delta ' + (diff < 0 ? 'delta-pos' : 'delta-neg');
+  if (wDelta) {
+    if (wLogs.length >= 2) {
+      const diff = wLogs[0].weight - wLogs[1].weight;
+      wDelta.textContent = weightArrow + ' ' + (diff > 0 ? '+' : '') + diff.toFixed(1) + ' from last entry';
+      wDelta.style.color = weightColor;
+    } else {
+      wDelta.textContent = 'Starting point';
+      wDelta.style.color = 'var(--muted)';
+    }
   }
 
   // Progress bar
@@ -1914,10 +1953,49 @@ function renderDashboard() {
   const totalFat = todayFood.reduce((s, f) => s + (f.fat || 0), 0);
 
   document.getElementById('dash-calories').textContent = totalCal || '—';
-  document.getElementById('d-protein').textContent = totalProtein;
-  document.getElementById('d-carbs').textContent = totalCarbs;
-  document.getElementById('d-fat').textContent = totalFat;
-  document.getElementById('cal-consumed').textContent = totalCal;
+  if (document.getElementById('d-protein')) document.getElementById('d-protein').textContent = totalProtein;
+  if (document.getElementById('d-carbs'))   document.getElementById('d-carbs').textContent   = totalCarbs;
+  if (document.getElementById('d-fat'))     document.getElementById('d-fat').textContent     = totalFat;
+  if (document.getElementById('cal-consumed')) document.getElementById('cal-consumed').textContent = totalCal;
+
+  // Protein stat box
+  const proteinEl = document.getElementById('dash-protein-val');
+  const proteinDelta = document.getElementById('dash-protein-delta');
+  if (proteinEl) {
+    proteinEl.textContent = totalProtein || '—';
+    proteinEl.style.color = totalProtein >= 185 ? 'var(--green)' : totalProtein >= 130 ? 'var(--yellow)' : 'var(--accent)';
+  }
+  if (proteinDelta) {
+    const pRemain = 185 - totalProtein;
+    proteinDelta.textContent = pRemain > 0 ? pRemain + 'g to go' : 'Goal hit! 🎯';
+    proteinDelta.style.color = pRemain <= 0 ? 'var(--green)' : 'var(--muted)';
+  }
+
+  // Progress start label
+  const progStart = document.getElementById('prog-start-lbl');
+  if (progStart) progStart.textContent = d.startWeight + ' lbs';
+
+  // Workout stat box
+  const todayWorkout = d.workoutLogs.find(w => w.date === today);
+  const workoutEl = document.getElementById('dash-workout-today');
+  const workoutDelta = document.getElementById('dash-workout-delta');
+  if (workoutEl) {
+    if (todayWorkout) {
+      workoutEl.textContent = '✓';
+      workoutEl.style.color = 'var(--green)';
+      workoutEl.style.textShadow = '0 0 16px rgba(16,185,129,0.5)';
+      if (workoutDelta) {
+        const label = (todayWorkout.type || '').replace('Strength A (Day A)','Day A').replace('Posterior Chain (Day B)','Day B').replace('Strength C (Day C)','Day C');
+        workoutDelta.textContent = 'Done! ' + label;
+        workoutDelta.style.color = 'var(--green)';
+      }
+    } else {
+      workoutEl.textContent = '—';
+      workoutEl.style.color = 'var(--muted)';
+      workoutEl.style.textShadow = 'none';
+      if (workoutDelta) { workoutDelta.textContent = 'not yet today'; workoutDelta.style.color = 'var(--muted)'; }
+    }
+  }
 
   // Ring
   const ringPct = Math.min(1, totalCal / 2300);
@@ -2739,7 +2817,8 @@ function buildDayA(mins, isGym, phaseInfo, variant) {
   let exercises = isGym ? [...v.gym] : [...v.home];
 
   // Scale exercise count to time
-  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
+  if (mins <= 15) exercises = exercises.slice(0,2).map(e=>({...e,sets:3}));
+  else if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
   else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
   else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
   else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
@@ -2901,7 +2980,9 @@ function buildCardioWorkout(mins, isGym, phaseInfo, variant) {
   let exercises = isGym ? [...v.gym] : [...v.home];
 
   // Scale to time — preserve cardio finisher position (always last)
-  if (mins <= 20) {
+  if (mins <= 15) {
+    exercises = exercises.filter(e => e.cat !== 'cardio').slice(0,2).map(e=>({...e,sets:3}));
+  } else if (mins <= 20) {
     exercises = exercises.filter(e => e.cat !== 'cardio').slice(0,3).map(e=>({...e,sets:3}));
   } else if (mins <= 30) {
     const cardio = exercises.filter(e => e.cat === 'cardio');
@@ -3038,7 +3119,8 @@ function buildDayC(mins, isGym, phaseInfo, variant) {
   const v = variants[variant];
   let exercises = isGym ? [...v.gym] : [...v.home];
 
-  if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
+  if (mins <= 15) exercises = exercises.slice(0,2).map(e=>({...e,sets:3}));
+  else if (mins <= 20) exercises = exercises.slice(0,3).map(e=>({...e,sets:3}));
   else if (mins <= 30) exercises = exercises.slice(0,5).map(e=>({...e,sets:3}));
   else if (mins <= 45) exercises = exercises.slice(0,7).map(e=>({...e,sets:3}));
   else exercises = exercises.map(e=>({...e,sets:3})); // 60+ full list, 3 sets
