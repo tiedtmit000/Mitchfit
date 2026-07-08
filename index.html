@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
 <title>MitchFit</title>
 
 <!-- iOS Home Screen App Behavior -->
@@ -913,7 +916,7 @@
       <div style="position:absolute;inset:0;background:radial-gradient(ellipse at 50% 0%,rgba(59,130,246,0.07) 0%,transparent 70%);pointer-events:none"></div>
       <div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Current Weight</div>
       <div style="display:flex;align-items:baseline;justify-content:center;gap:8px">
-        <div id="dash-weight" style="font-size:64px;font-weight:800;font-family:var(--mono);line-height:1;color:var(--accent);text-shadow:0 0 20px rgba(59,130,246,0.4);transition:color 0.5s,text-shadow 0.5s">—</div>
+        <div id="dash-weight" style="font-size:64px;font-weight:800;font-family:var(--mono);line-height:1;color:var(--accent);text-shadow:0 0 20px rgba(59,130,246,0.4);transition:color 0.5s,text-shadow 0.5s">273</div>
         <div style="font-size:20px;color:var(--muted);font-weight:600">lbs</div>
       </div>
       <div id="dash-weight-delta" style="font-size:13px;color:var(--muted);margin-top:4px;font-family:var(--mono)">—</div>
@@ -921,7 +924,7 @@
         <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px">
           <span id="prog-start-lbl">start</span>
           <span id="prog-pct" style="color:var(--accent);font-weight:700;font-family:var(--mono)">0%</span>
-          <span>Goal: <span id="dash-goal" style="color:var(--accent)">—</span> lbs</span>
+          <span>Goal: <span id="dash-goal" style="color:var(--accent)">268</span> lbs</span>
         </div>
         <div class="progress-wrap">
           <div class="progress-bar green" id="prog-bar" style="width:0%"></div>
@@ -952,7 +955,7 @@
     <div class="card" id="checklist-card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
         <div class="card-title" style="margin-bottom:0">Today's Non-Negotiables</div>
-        <div id="checklist-score" style="font-family:var(--mono);font-size:13px;color:var(--muted)">0 / 5</div>
+        <div id="checklist-score" style="font-family:var(--mono);font-size:13px;color:var(--muted)">0 / 6</div>
       </div>
       <div id="checklist-items"></div>
       <div class="progress-wrap" style="margin-top:12px">
@@ -1564,6 +1567,10 @@ function recoverLegacyData() {
 
 function init() {
   const today = localDateStr();
+
+  // Render FIRST with whatever is in localStorage — eliminates blank flash
+  renderAll();
+
   document.getElementById('wo-date').value = today;
   document.getElementById('food-date').value = today;
   document.getElementById('wt-date').value = today;
@@ -1586,7 +1593,7 @@ function init() {
   }
   if (dirty) saveLearnedFoods(learned);
 
-  // Render immediately with whatever is in localStorage
+  // Re-render after setup to pick up any recovered data
   renderAll();
   setupCoach();
 
@@ -1638,6 +1645,8 @@ function renderAll() {
   renderFoodToday();
   renderFoodHistory();
   renderWeightPanel();
+  // Force paint on iOS Safari — reading layout property triggers reflow
+  void document.getElementById('panel-dashboard').offsetHeight;
 }
 
 // ═══════════════════════════════════════════
