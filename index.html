@@ -1574,7 +1574,19 @@ function init() {
   migrateUTCDates();
   // Restore auth UI state and sync from cloud if signed in
   renderAuthState();
-  if (sbGetToken()) syncFromCloud().catch(e => console.warn('Initial sync failed:', e));
+  if (sbGetToken()) {
+    // Show loading indicator on dashboard while sync runs
+    const weightEl = document.getElementById('dash-weight');
+    if (weightEl && weightEl.textContent === '—') {
+      weightEl.style.opacity = '0.4';
+    }
+    syncFromCloud()
+      .then(() => { if (weightEl) weightEl.style.opacity = '1'; })
+      .catch(e => {
+        console.warn('Initial sync failed:', e);
+        if (weightEl) weightEl.style.opacity = '1';
+      });
+  }
 
   // Purge garbage learned cache entries
   const learned = getLearnedFoods();
@@ -1593,10 +1605,8 @@ function init() {
   // Fire morning brief async — non-blocking
   checkMorningBrief();
 
-  // Re-render after a tick to catch any data that loads async
-  // Fixes dashboard showing stale values on first load
-  setTimeout(() => renderAll(), 50);
-  setTimeout(() => renderAll(), 300);
+  // If not signed in, do a single re-render after localStorage settles
+  if (!sbGetToken()) setTimeout(() => renderAll(), 100);
 }
 
 
@@ -6098,7 +6108,6 @@ async function syncFromCloud() {
   const weightCount  = d.weights?.weightLogs?.length || 0;
 
   console.log('Cloud data — workouts:', workoutCount, 'food:', foodCount, 'weights:', weightCount);
-  showToast('Cloud: ' + workoutCount + ' workouts, ' + foodCount + ' food, ' + weightCount + ' weights');
 
   // Restore from cloud
   if (d.settings)  lsSet('mitchfit_settings', d.settings);
