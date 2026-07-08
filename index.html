@@ -1597,6 +1597,20 @@ function init() {
   if (sbGetToken()) {
     syncFromCloud().catch(e => console.warn('Initial sync failed:', e));
   }
+
+  // Re-render when app comes back into focus (covers PWA home screen open + tab switching)
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      _cache = null;
+      renderAll();
+    }
+  });
+
+  // Re-render on page focus (covers Safari switching back)
+  window.addEventListener('focus', () => {
+    _cache = null;
+    renderAll();
+  });
 }
 
 
@@ -6074,10 +6088,19 @@ async function syncToCloud() {
 }
 
 async function syncFromCloud() {
-  const token = await sbGetValidToken();
+  // Use stored token directly first — avoids a refresh round trip on every open
+  // If it fails with 401, then validate/refresh and retry once
+  let token = sbGetToken();
   if (!token) return;
 
-  const rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
+  let rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
+
+  // If unauthorized, token may be expired — refresh and retry once
+  if (rows?.code === 'PGRST301' || rows?.message?.includes('JWT') || rows?.hint?.includes('expired')) {
+    token = await sbGetValidToken();
+    if (!token) return;
+    rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
+  }
   if (!Array.isArray(rows) || rows.length === 0) {
     // No cloud data yet — push local up
     const localD = getData();
