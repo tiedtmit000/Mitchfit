@@ -1592,6 +1592,11 @@ function init() {
 
   // Fire morning brief async — non-blocking
   checkMorningBrief();
+
+  // Re-render after a tick to catch any data that loads async
+  // Fixes dashboard showing stale values on first load
+  setTimeout(() => renderAll(), 50);
+  setTimeout(() => renderAll(), 300);
 }
 
 
@@ -6110,7 +6115,7 @@ async function syncFromCloud() {
   setTimeout(() => {
     _cache = null;
     renderAll();
-    showToast('Data restored from cloud ✓');
+    showToast('Data loaded from cloud ✓');
   }, 100);
 }
 
