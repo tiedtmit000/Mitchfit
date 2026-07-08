@@ -1575,16 +1575,17 @@ function init() {
   // Restore auth UI state and sync from cloud if signed in
   renderAuthState();
   if (sbGetToken()) {
-    // Show loading indicator on dashboard while sync runs
-    const weightEl = document.getElementById('dash-weight');
-    if (weightEl && weightEl.textContent === '—') {
-      weightEl.style.opacity = '0.4';
+    // Show loading banner while cloud sync runs
+    const alertEl = document.getElementById('dash-alert');
+    if (alertEl) {
+      alertEl.innerHTML = '<div class="alert alert-blue" style="text-align:center;font-size:12px">☁️ Loading your data...</div>';
     }
     syncFromCloud()
-      .then(() => { if (weightEl) weightEl.style.opacity = '1'; })
+      .then(() => { if (alertEl) alertEl.innerHTML = ''; renderAll(); })
       .catch(e => {
         console.warn('Initial sync failed:', e);
-        if (weightEl) weightEl.style.opacity = '1';
+        if (alertEl) alertEl.innerHTML = '';
+        renderAll();
       });
   }
 
