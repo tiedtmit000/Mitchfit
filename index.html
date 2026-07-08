@@ -6133,12 +6133,19 @@ async function syncFromCloud() {
   _cache = null;
   _learnedCache = null;
 
-  // Small delay to ensure localStorage is written before re-reading
-  setTimeout(() => {
-    _cache = null;
-    renderAll();
-    showToast('Data loaded from cloud ✓');
-  }, 100);
+  // Clear cache and re-render — force iOS repaint by toggling panel class
+  _cache = null;
+  _learnedCache = null;
+  renderAll();
+
+  // Force visual repaint on iOS PWA — toggling active class triggers layout
+  const dashPanel = document.getElementById('panel-dashboard');
+  if (dashPanel && dashPanel.classList.contains('active')) {
+    dashPanel.classList.remove('active');
+    requestAnimationFrame(() => {
+      dashPanel.classList.add('active');
+    });
+  }
 }
 
 function renderAuthState() {
