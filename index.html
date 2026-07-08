@@ -1326,7 +1326,7 @@
           <button class="btn btn-outline" style="flex:1" onclick="authSignOut()">Sign Out</button>
         </div>
         <div id="sync-status" style="font-size:12px;color:var(--muted);text-align:center"></div>
-      <div style="margin-top:8px;font-size:11px;color:var(--muted);text-align:center" id="token-debug"></div>
+
       </div>
     </div>
 
@@ -1598,19 +1598,36 @@ function init() {
     syncFromCloud().catch(e => console.warn('Initial sync failed:', e));
   }
 
-  // Re-render when app comes back into focus (covers PWA home screen open + tab switching)
+  // Re-render when app comes back into focus
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
       _cache = null;
       renderAll();
+      // If token will expire within 10 minutes, refresh it proactively
+      if (sbGetToken()) {
+        try {
+          const payload = JSON.parse(atob(sbGetToken().split('.')[1]));
+          const minsLeft = (payload.exp * 1000 - Date.now()) / 60000;
+          if (minsLeft < 10) sbRefreshToken().catch(() => {});
+        } catch(e) {}
+      }
     }
   });
 
-  // Re-render on page focus (covers Safari switching back)
   window.addEventListener('focus', () => {
     _cache = null;
     renderAll();
   });
+
+  // Proactively refresh the token every 45 minutes while app is open
+  // Keeps the token fresh so sync is never blocked by an expiry
+  if (sbGetToken()) {
+    setInterval(() => {
+      if (sbGetToken()) {
+        sbRefreshToken().catch(e => console.warn('Background token refresh failed:', e));
+      }
+    }, 45 * 60 * 1000); // 45 minutes
+  }
 }
 
 
@@ -6088,16 +6105,28 @@ async function syncToCloud() {
 }
 
 async function syncFromCloud() {
-  // Use stored token directly first — avoids a refresh round trip on every open
-  // If it fails with 401, then validate/refresh and retry once
-  let token = sbGetToken();
-  if (!token) return;
+  // Check token expiry locally before making any network call
+  // If expired, refresh first — one network call beats making a failed call then refreshing
+  const rawToken = sbGetToken();
+  if (!rawToken) return;
+
+  let token = rawToken;
+  try {
+    const payload = JSON.parse(atob(rawToken.split('.')[1]));
+    if (Date.now() >= payload.exp * 1000) {
+      // Token is expired — refresh immediately, no point trying with expired token
+      token = await sbRefreshToken();
+      if (!token) return;
+    }
+  } catch(e) {
+    // Can't decode — try anyway
+  }
 
   let rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
 
-  // If unauthorized, token may be expired — refresh and retry once
+  // Fallback: if still getting auth error, try one more refresh
   if (rows?.code === 'PGRST301' || rows?.message?.includes('JWT') || rows?.hint?.includes('expired')) {
-    token = await sbGetValidToken();
+    token = await sbRefreshToken();
     if (!token) return;
     rows = await sbDataCall('GET', '/user_data?select=payload', null, token);
   }
@@ -6175,19 +6204,7 @@ function renderAuthState() {
     if (statusEl && lastSync?.at) {
       statusEl.textContent = 'Last synced: ' + new Date(lastSync.at).toLocaleTimeString();
     }
-    // Show token debug info
-    const debugEl = document.getElementById('token-debug');
-    if (debugEl && token) {
-      try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const exp = new Date(payload.exp * 1000).toLocaleTimeString();
-        const iss = payload.iss || 'unknown';
-        const sub = (payload.sub || '').slice(0,8) + '...';
-        debugEl.textContent = `Token: sub=${sub} exp=${exp} iss=${iss.split('/').pop()}`;
-      } catch(e) {
-        debugEl.textContent = 'Token decode failed';
-      }
-    }
+
   } else {
     form.style.display = 'block';
     signedin.style.display = 'none';
