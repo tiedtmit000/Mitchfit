@@ -6167,14 +6167,9 @@ async function syncFromCloud() {
   _learnedCache = null;
   renderAll();
 
-  // Force visual repaint on iOS PWA — toggling active class triggers layout
+  // Scroll dashboard to top to make update visible
   const dashPanel = document.getElementById('panel-dashboard');
-  if (dashPanel && dashPanel.classList.contains('active')) {
-    dashPanel.classList.remove('active');
-    requestAnimationFrame(() => {
-      dashPanel.classList.add('active');
-    });
-  }
+  if (dashPanel) dashPanel.scrollTop = 0;
 }
 
 function renderAuthState() {
